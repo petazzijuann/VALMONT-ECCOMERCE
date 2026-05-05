@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id               String   @id @default(uuid())
+  name             String
+  slug             String   @unique
+  description      String
+  category         String
+  images           String[]
+  tags             String[]
+  price_sale       Decimal  @db.Decimal(10, 2)
+  price_cost       Decimal  @db.Decimal(10, 2)
+  stock            Json
+  is_published     Boolean  @default(false)
+  instagram_posted Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  sales Sale[]
+
+  @@map("products")
+}
+
+model Sale {
+  id             String   @id @default(uuid())
+  product_id     String
+  product_name   String
+  size           String
+  quantity       Int
+  sale_price     Decimal  @db.Decimal(10, 2)
+  cost_price     Decimal  @db.Decimal(10, 2)
+  channel        String
+  payment_method String
+  order_id       String?
+  customer_note  String?
+  created_at     DateTime @default(now())
+
+  product Product @relation(fields: [product_id], references: [id])
+  order   Order?  @relation(fields: [order_id], references: [id])
+
+  @@map("sales")
+}
+
+model Order {
+  id                  String   @id @default(uuid())
+  customer_name       String
+  customer_email      String
+  customer_phone      String
+  customer_address    Json
+  items               Json
+  total_amount        Decimal  @db.Decimal(10, 2)
+  status              String   @default("pending_payment")
+  payment_method      String
+  payment_proof_url   String?
+  astropay_payment_id String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  sales Sale[]
+
+  @@map("orders")
+}
+
+model TelegramSession {
+  id         String   @id @default(uuid())
+  chat_id    String   @unique
+  state      String   @default("idle")
+  data       Json     @default("{}")
+  updated_at DateTime @updatedAt
+
+  @@map("telegram_sessions")
+}
