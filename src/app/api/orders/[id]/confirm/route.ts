@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma/client";
+import { fulfillOrder } from "@/lib/orders/fulfill";
 
 const schema = z.object({
   payment_proof_url: z.string().url(),
@@ -24,11 +25,10 @@ export async function POST(
 
   await prisma.order.update({
     where: { id },
-    data: {
-      payment_proof_url: parsed.data.payment_proof_url,
-      status: "payment_confirmed",
-    },
+    data: { payment_proof_url: parsed.data.payment_proof_url },
   });
+
+  await fulfillOrder(id, "transfer");
 
   return NextResponse.json({ ok: true });
 }

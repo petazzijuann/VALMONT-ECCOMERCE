@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
 import { verifyWebhookSignature } from "@/lib/astropay/client";
+import { fulfillOrder } from "@/lib/orders/fulfill";
 
 export async function POST(request: NextRequest) {
   const payload = await request.text();
@@ -17,61 +18,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
 
-  const status = data["status"] as string | undefined;
-  const orderId = data["merchant_transaction_id"] as string | undefined;
+  const status    = data["status"] as string | undefined;
+  const orderId   = data["merchant_transaction_id"] as string | undefined;
   const paymentId = data["external_id"] as string | undefined;
 
   if (!orderId) {
     return NextResponse.json({ error: "merchant_transaction_id requerido" }, { status: 400 });
   }
 
-  // Solo procesamos pagos aprobados
   if (status !== "APPROVED" && status !== "approved" && status !== "1") {
     return NextResponse.json({ received: true });
   }
 
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
-  if (!order) {
-    return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
-  }
-
-  await prisma.order.update({
-    where: { id: orderId },
-    data: {
-      status: "payment_confirmed",
-      ...(paymentId ? { astropay_payment_id: paymentId } : {}),
-    },
-  });
-
-  // Crear registros de Sale por cada item
-  const items = order.items as unknown as Array<{
-    product_id: string;
-    name: string;
-    size: string;
-    qty: number;
-    price: number;
-  }>;
-
-  for (const item of items) {
-    const product = await prisma.product.findUnique({
-      where: { id: item.product_id },
-      select: { price_cost: true },
-    });
-
-    await prisma.sale.create({
-      data: {
-        product_id:    item.product_id,
-        product_name:  item.name,
-        size:          item.size,
-        quantity:      item.qty,
-        sale_price:    item.price,
-        cost_price:    product?.price_cost ?? 0,
-        channel:       "online",
-        payment_method: "astropay",
-        order_id:      orderId,
-      },
+  if (paymentId) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { astropay_payment_id: paymentId },
     });
   }
+
+  await fulfillOrder(orderId, "astropay");
 
   return NextResponse.json({ received: true });
 }

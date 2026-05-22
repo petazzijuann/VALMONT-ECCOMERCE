@@ -10,7 +10,8 @@ export default function Footer() {
             <p className="font-bebas text-2xl text-brand-cream tracking-widest mb-2">
               VALMONT
             </p>
-            <p className="text-sm">Indumentaria urbano-elegante. Buenos Aires, Argentina.</p>
+            <p className="text-sm">Indumentaria urbano-elegante. Rosario, Santa Fe.</p>
+            <p className="text-sm mt-1 text-xs opacity-70">Fundada en 2026.</p>
           </div>
 
           <div>

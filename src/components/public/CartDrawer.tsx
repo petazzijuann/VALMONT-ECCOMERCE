@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { X, Trash2, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,6 +10,11 @@ import { formatARS } from "@/lib/utils";
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalPrice } =
     useCartStore();
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
 
   return (
     <>
@@ -22,8 +28,8 @@ export default function CartDrawer() {
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 right-0 h-full w-full sm:max-w-sm bg-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
+          isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
         }`}
       >
         {/* Header */}

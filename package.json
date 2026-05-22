@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "scripts": {
     "dev": "next dev",
@@ -17,6 +17,7 @@
     "webhook:delete": "node --env-file=.env.local scripts/delete-webhook.mjs"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -26,6 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.4",
     "openai": "^6.35.0",

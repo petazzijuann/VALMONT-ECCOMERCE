@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma/client";
 import { createPaymentLink } from "@/lib/astropay/client";
+import { reserveStock } from "@/lib/orders/fulfill";
 import type { CreateOrderResponse } from "@/types";
 
 const orderSchema = z.object({
@@ -23,6 +24,12 @@ const orderSchema = z.object({
     price:      z.number().positive(),
   })).min(1),
   payment_method: z.enum(["astropay", "transfer"]),
+
+  // Envío (opcionales)
+  shipping_method:     z.string().nullable().optional(),
+  shipping_cost:       z.number().nullable().optional(),
+  shipping_cp:         z.string().nullable().optional(),
+  shipping_days_label: z.string().nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -32,8 +39,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
-  const total = data.items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const data          = parsed.data;
+  const subtotal      = data.items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const shippingCost  = data.shipping_cost ?? 0;
+  const total         = subtotal + shippingCost;
 
   const order = await prisma.order.create({
     data: {
@@ -45,8 +54,15 @@ export async function POST(request: NextRequest) {
       total_amount:     total,
       payment_method:   data.payment_method,
       status:           "pending_payment",
+
+      shipping_method:     data.shipping_method     ?? null,
+      shipping_cost:       shippingCost > 0 ? shippingCost : null,
+      shipping_cp:         data.shipping_cp         ?? null,
+      shipping_days_label: data.shipping_days_label ?? null,
     },
   });
+
+  await reserveStock(order.id);
 
   const response: CreateOrderResponse = {
     order_id:       order.id,
@@ -68,12 +84,12 @@ export async function POST(request: NextRequest) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   try {
     const { paymentUrl, paymentId } = await createPaymentLink({
-      orderId:     order.id,
-      amount:      total,
+      orderId:       order.id,
+      amount:        total,
       customerEmail: data.customer_email,
-      description: `VALMONT Pedido #${order.id.slice(0, 8).toUpperCase()}`,
-      redirectUrl: `${baseUrl}/pedido/${order.id}`,
-      callbackUrl: `${baseUrl}/api/webhooks/astropay`,
+      description:   `VALMONT Pedido #${order.id.slice(0, 8).toUpperCase()}`,
+      redirectUrl:   `${baseUrl}/pedido/${order.id}`,
+      callbackUrl:   `${baseUrl}/api/webhooks/astropay`,
     });
 
     await prisma.order.update({
@@ -84,7 +100,6 @@ export async function POST(request: NextRequest) {
     response.payment_url = paymentUrl;
   } catch (err) {
     console.error("AstroPay error:", err);
-    // Si AstroPay falla, redirigir a la página del pedido igual
     response.payment_url = `${baseUrl}/pedido/${order.id}`;
   }
 

@@ -127,6 +127,13 @@ export interface CreateOrderResponse {
   transfer_info?: TransferInfo;
 }
 
+export interface ShippingOption {
+  type: "rosario" | "retiro_local" | "andreani_standard" | "andreani_express";
+  label: string;
+  days_label: string;
+  cost: number;
+}
+
 export interface CartItem {
   product_id: string;
   slug: string;

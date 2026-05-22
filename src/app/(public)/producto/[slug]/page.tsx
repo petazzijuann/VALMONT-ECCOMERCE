@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma/client";
 import ImageGallery from "@/components/public/ImageGallery";
-import AddToCartSection from "@/components/public/AddToCartSection";
+import ProductInfoAnimated from "@/components/public/ProductInfoAnimated";
+import StickyCartBar from "@/components/public/StickyCartBar";
 import type { ProductPublic, StockMap } from "@/types";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_URL ?? "https://valmont.com.ar";
@@ -38,19 +39,13 @@ export async function generateMetadata({
     title,
     description,
     openGraph: {
-      title,
-      description,
-      type:   "website",
+      title, description, type: "website",
       url:    `${BASE}/producto/${slug}`,
-      images: image
-        ? [{ url: image, width: 1200, height: 1600, alt: product.name }]
-        : [],
+      images: image ? [{ url: image, width: 1200, height: 1600, alt: product.name }] : [],
     },
     twitter: {
-      card:        "summary_large_image",
-      title,
-      description,
-      images:      image ? [image] : [],
+      card: "summary_large_image", title, description,
+      images: image ? [image] : [],
     },
   };
 }
@@ -81,7 +76,7 @@ export default async function ProductoPage({
     updated_at: raw.updated_at.toISOString(),
   } as ProductPublic;
 
-  const stock = product.stock as StockMap;
+  const stock    = product.stock as StockMap;
   const hasStock = Object.values(stock).some((q) => q > 0);
 
   const jsonLd = {
@@ -113,7 +108,7 @@ export default async function ProductoPage({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-2 label-tag text-muted-foreground mb-8 text-xs overflow-x-auto whitespace-nowrap scrollbar-none pb-1"
+          className="flex items-center gap-2 label-tag text-muted-foreground mb-8 text-xs overflow-x-auto whitespace-nowrap scrollbar-none pb-1 opacity-0 animate-[fadeSlideLeft_0.5s_ease-out_forwards]"
         >
           <Link href="/" className="hover:text-foreground transition-colors shrink-0">HOME</Link>
           <span aria-hidden>/</span>
@@ -131,48 +126,17 @@ export default async function ProductoPage({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
           {/* Galería */}
-          <ImageGallery images={product.images} name={product.name} />
-
-          {/* Info */}
-          <div className="flex flex-col gap-6">
-            <div>
-              <p className="label-tag text-muted-foreground mb-2">
-                {product.category.toUpperCase()}
-              </p>
-              <h1 className="font-bebas text-5xl lg:text-6xl leading-none">{product.name}</h1>
-              <p className="price-text text-2xl mt-3">
-                ${product.price_sale.toLocaleString("es-AR")}
-              </p>
-            </div>
-
-            <AddToCartSection product={product} />
-
-            {/* Descripción */}
-            {product.description && (
-              <div className="border-t border-border pt-6">
-                <p className="label-tag mb-3">DESCRIPCIÓN</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {product.description}
-                </p>
-              </div>
-            )}
-
-            {/* Tags */}
-            {product.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {product.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="label-tag border border-border px-3 py-1 text-[10px] text-muted-foreground"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="opacity-0 animate-[fadeSlideUp_0.8s_ease-out_0.1s_forwards]">
+            <ImageGallery images={product.images} name={product.name} />
           </div>
+
+          {/* Info animada */}
+          <ProductInfoAnimated product={product} />
         </div>
       </div>
+
+      {/* Barra sticky mobile */}
+      <StickyCartBar name={product.name} price={product.price_sale} />
     </>
   );
 }

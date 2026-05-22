@@ -19,13 +19,16 @@ export default function ProductCard({ product }: { product: ProductPublic }) {
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-cover group-hover:scale-[1.04] transition-transform duration-[400ms] ease-[power1.out]"
           />
         ) : (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
             <span className="label-tag text-muted-foreground">SIN IMAGEN</span>
           </div>
         )}
+
+        {/* Overlay crema sutil en hover */}
+        <div className="absolute inset-0 bg-brand-cream opacity-0 group-hover:opacity-[0.06] transition-opacity duration-400" />
 
         {/* Tag de categoría */}
         <div className="absolute top-3 left-3">
@@ -37,7 +40,7 @@ export default function ProductCard({ product }: { product: ProductPublic }) {
 
       {/* Info */}
       <div>
-        <h3 className="font-bebas text-xl leading-tight group-hover:text-brand-green transition-colors">
+        <h3 className="font-bebas text-xl leading-tight group-hover:text-brand-green group-hover:-translate-y-0.5 transition-[color,transform] duration-300">
           {product.name}
         </h3>
 

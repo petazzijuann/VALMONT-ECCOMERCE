@@ -1,30 +1,113 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, ArrowLeft } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatARS } from "@/lib/utils";
+import type { ShippingOption } from "@/types";
+
+type ShippingType = "rosario" | "retiro_local" | "andreani";
+type QuoteStatus  = "idle" | "loading" | "done" | "error";
+
+const FIXED_OPTIONS: Record<"rosario" | "retiro_local", ShippingOption> = {
+  rosario: {
+    type:      "rosario",
+    label:     "Envío en Rosario",
+    days_label: "Coordinamos fecha de entrega",
+    cost:      3000,
+  },
+  retiro_local: {
+    type:      "retiro_local",
+    label:     "Retiro en local",
+    days_label: "España 1541, Rosario · Coordinamos horario por WhatsApp",
+    cost:      0,
+  },
+};
+
+const SHIPPING_TYPES: { id: ShippingType; label: string; sub: string }[] = [
+  { id: "rosario",      label: "Envío en Rosario",  sub: `${formatARS(3000)}` },
+  { id: "retiro_local", label: "Retiro en local",   sub: "Gratis · España 1541" },
+  { id: "andreani",     label: "Envío Andreani",    sub: "Calculá por CP" },
+];
+
+function deriveType(opt: ShippingOption | null): ShippingType | null {
+  if (!opt) return null;
+  if (opt.type === "rosario")      return "rosario";
+  if (opt.type === "retiro_local") return "retiro_local";
+  return "andreani";
+}
 
 export default function CarritoPage() {
-  const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCartStore();
+  const {
+    items, removeItem, updateQuantity, totalPrice, clearCart,
+    shippingOption, shippingCp,
+    setShippingOption, setShippingCp,
+    totalWithShipping,
+  } = useCartStore();
+
+  const [selectedType, setSelectedType] = useState<ShippingType | null>(deriveType(shippingOption));
+  const [cpInput,      setCpInput]      = useState(shippingCp);
+  const [quoteStatus,  setQuoteStatus]  = useState<QuoteStatus>("idle");
+  const [quoteOptions, setQuoteOptions] = useState<ShippingOption[]>([]);
+  const [quoteError,   setQuoteError]   = useState("");
 
   if (items.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
         <h1 className="font-bebas text-5xl mb-4">CARRITO VACÍO</h1>
-        <p className="text-muted-foreground mb-8">
-          Todavía no agregaste ningún producto.
-        </p>
-        <Link
-          href="/tienda"
-          className="inline-block bg-brand-green text-brand-cream px-10 py-4 font-bold tracking-widest text-sm hover:bg-green-mid transition-colors"
-        >
+        <p className="text-muted-foreground mb-8">Todavía no agregaste ningún producto.</p>
+        <Link href="/tienda" className="inline-block bg-brand-green text-brand-cream px-10 py-4 font-bold tracking-widest text-sm hover:bg-green-mid transition-colors">
           IR A LA TIENDA
         </Link>
       </div>
     );
   }
+
+  function handleTypeSelect(type: ShippingType) {
+    setSelectedType(type);
+    setQuoteStatus("idle");
+    setQuoteError("");
+    if (type === "rosario" || type === "retiro_local") {
+      setShippingOption(FIXED_OPTIONS[type]);
+    } else {
+      // andreani: limpiar hasta que el usuario calcule
+      setShippingOption(null);
+    }
+  }
+
+  async function handleQuote() {
+    if (!/^\d{4,5}$/.test(cpInput.trim())) {
+      setQuoteError("El código postal debe tener 4 o 5 dígitos.");
+      return;
+    }
+    setQuoteStatus("loading");
+    setQuoteError("");
+    setShippingOption(null);
+
+    try {
+      const res  = await fetch(`/api/shipping/quote?cp=${encodeURIComponent(cpInput.trim())}`);
+      const data = await res.json() as { options: ShippingOption[]; error?: string };
+
+      if (data.error || data.options.length === 0) {
+        setQuoteError(data.error ?? "No pudimos cotizar el envío para ese código postal. Intentá de nuevo.");
+        setQuoteStatus("error");
+        return;
+      }
+
+      setQuoteOptions(data.options);
+      setShippingCp(cpInput.trim());
+      setShippingOption(data.options[0]);
+      setQuoteStatus("done");
+    } catch {
+      setQuoteError("No pudimos cotizar el envío. Intentá de nuevo.");
+      setQuoteStatus("error");
+    }
+  }
+
+  const subtotal = totalPrice();
+  const total    = totalWithShipping();
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -39,60 +122,29 @@ export default function CarritoPage() {
         {/* Items */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {items.map((item) => (
-            <div
-              key={`${item.product_id}-${item.size}`}
-              className="flex gap-4 pb-6 border-b border-border"
-            >
-              {/* Imagen */}
+            <div key={`${item.product_id}-${item.size}`} className="flex gap-4 pb-6 border-b border-border">
               <div className="relative w-24 h-32 bg-muted shrink-0 overflow-hidden">
                 {item.image ? (
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover"
-                    sizes="96px"
-                  />
+                  <Image src={item.image} alt={item.name} fill className="object-cover" sizes="96px" />
                 ) : (
                   <div className="w-full h-full bg-muted" />
                 )}
               </div>
 
-              {/* Info */}
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="font-bebas text-xl">{item.name}</h3>
-                  <p className="label-tag text-muted-foreground mt-1">
-                    Talle {item.size}
-                  </p>
+                  <p className="label-tag text-muted-foreground mt-1">Talle {item.size}</p>
                 </div>
-
                 <div className="flex items-center justify-between">
-                  {/* Cantidad */}
                   <div className="flex items-center border border-border">
-                    <button
-                      onClick={() => updateQuantity(item.product_id, item.size, item.quantity - 1)}
-                      className="px-3 py-2 text-sm hover:bg-muted transition-colors"
-                    >
-                      −
-                    </button>
-                    <span className="px-4 py-2 text-sm border-x border-border min-w-[40px] text-center">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.product_id, item.size, item.quantity + 1)}
-                      className="px-3 py-2 text-sm hover:bg-muted transition-colors"
-                    >
-                      +
-                    </button>
+                    <button onClick={() => updateQuantity(item.product_id, item.size, item.quantity - 1)} className="px-3 py-2 text-sm hover:bg-muted transition-colors">−</button>
+                    <span className="px-4 py-2 text-sm border-x border-border min-w-[40px] text-center">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.product_id, item.size, item.quantity + 1)} className="px-3 py-2 text-sm hover:bg-muted transition-colors">+</button>
                   </div>
-
                   <div className="flex items-center gap-4">
                     <p className="price-text">{formatARS(item.price * item.quantity)}</p>
-                    <button
-                      onClick={() => removeItem(item.product_id, item.size)}
-                      className="text-muted-foreground hover:text-valmont-error transition-colors"
-                    >
+                    <button onClick={() => removeItem(item.product_id, item.size)} className="text-muted-foreground hover:text-valmont-error transition-colors">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -101,10 +153,7 @@ export default function CarritoPage() {
             </div>
           ))}
 
-          <button
-            onClick={clearCart}
-            className="label-tag text-muted-foreground hover:text-valmont-error transition-colors self-start text-xs"
-          >
+          <button onClick={clearCart} className="label-tag text-muted-foreground hover:text-valmont-error transition-colors self-start text-xs">
             VACIAR CARRITO
           </button>
         </div>
@@ -114,34 +163,133 @@ export default function CarritoPage() {
           <div className="border border-border p-6 sticky top-24">
             <h2 className="font-bebas text-2xl mb-6">RESUMEN</h2>
 
-            <div className="flex flex-col gap-3 mb-6 text-sm">
+            {/* Items */}
+            <div className="flex flex-col gap-3 mb-4 text-sm">
               {items.map((item) => (
-                <div
-                  key={`${item.product_id}-${item.size}`}
-                  className="flex justify-between text-muted-foreground"
-                >
+                <div key={`${item.product_id}-${item.size}`} className="flex justify-between text-muted-foreground">
                   <span>{item.name} ({item.size}) ×{item.quantity}</span>
                   <span>{formatARS(item.price * item.quantity)}</span>
                 </div>
               ))}
             </div>
 
-            <div className="border-t border-border pt-4 flex items-center justify-between mb-6">
-              <p className="label-tag">TOTAL</p>
-              <p className="price-text text-xl">{formatARS(totalPrice())}</p>
+            <div className="border-t border-border pt-3 flex items-center justify-between mb-6">
+              <p className="label-tag text-muted-foreground">SUBTOTAL</p>
+              <p className="text-sm">{formatARS(subtotal)}</p>
             </div>
 
-            <Link
-              href="/checkout"
-              className="block w-full bg-brand-green text-brand-cream text-center py-4 font-bold tracking-widest text-sm hover:bg-green-mid transition-colors"
-            >
+            {/* Sección envío */}
+            <div className="mb-6">
+              <p className="label-tag mb-3">ENVÍO</p>
+
+              {/* Selector de tipo */}
+              <div className="flex flex-col gap-2 mb-3">
+                {SHIPPING_TYPES.map(({ id, label, sub }) => {
+                  const active = selectedType === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => handleTypeSelect(id)}
+                      className={`w-full text-left border p-3 transition-colors ${
+                        active ? "border-brand-green bg-brand-green/5" : "border-border hover:border-brand-green/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-3 h-3 rounded-full border-2 shrink-0 ${
+                          active ? "border-brand-green bg-brand-green" : "border-border"
+                        }`} />
+                        <div className="flex-1 flex items-center justify-between">
+                          <p className="label-tag text-xs">{label}</p>
+                          <p className="text-xs text-muted-foreground">{sub}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Bloque Andreani: CP + opciones */}
+              {selectedType === "andreani" && (
+                <div className="mt-2">
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      value={cpInput}
+                      onChange={(e) => setCpInput(e.target.value.replace(/\D/g, ""))}
+                      onKeyDown={(e) => e.key === "Enter" && handleQuote()}
+                      placeholder="Código postal"
+                      className="flex-1 border border-border px-3 py-2 text-sm focus:outline-none focus:border-brand-green transition-colors bg-background"
+                    />
+                    <button
+                      onClick={handleQuote}
+                      disabled={quoteStatus === "loading"}
+                      className="label-tag text-xs px-4 py-2 border border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-cream transition-colors disabled:opacity-40"
+                    >
+                      {quoteStatus === "loading" ? "..." : "CALCULAR"}
+                    </button>
+                  </div>
+
+                  {quoteStatus === "loading" && (
+                    <div className="flex flex-col gap-2">
+                      <div className="h-12 bg-muted animate-pulse" />
+                      <div className="h-12 bg-muted animate-pulse" />
+                    </div>
+                  )}
+
+                  {quoteStatus === "error" && (
+                    <p className="text-valmont-error text-xs label-tag">{quoteError}</p>
+                  )}
+
+                  {quoteStatus === "done" && quoteOptions.map((opt) => {
+                    const sel = shippingOption?.type === opt.type;
+                    return (
+                      <button
+                        key={opt.type}
+                        type="button"
+                        onClick={() => setShippingOption(opt)}
+                        className={`w-full text-left border p-3 mb-2 transition-colors ${
+                          sel ? "border-brand-green bg-brand-green/5" : "border-border hover:border-brand-green/50"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={`mt-0.5 w-3 h-3 rounded-full border-2 shrink-0 ${sel ? "border-brand-green bg-brand-green" : "border-border"}`} />
+                          <div className="flex-1">
+                            <p className="label-tag text-xs">{opt.label}</p>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <p className="text-muted-foreground text-xs">{opt.days_label}</p>
+                              <p className="text-sm font-medium">{formatARS(opt.cost)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="border-t border-border pt-4 mb-6">
+              {shippingOption && (
+                <div className="flex items-center justify-between mb-2 text-sm text-muted-foreground">
+                  <span>{shippingOption.label}</span>
+                  <span>{shippingOption.cost === 0 ? "Gratis" : formatARS(shippingOption.cost)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <p className="label-tag">TOTAL</p>
+                <p className="price-text text-xl">{formatARS(total)}</p>
+              </div>
+            </div>
+
+            <Link href="/checkout" className="block w-full bg-brand-green text-brand-cream text-center py-4 font-bold tracking-widest text-sm hover:bg-green-mid transition-colors">
               FINALIZAR COMPRA
             </Link>
 
-            <Link
-              href="/tienda"
-              className="block w-full text-center label-tag text-muted-foreground hover:text-foreground transition-colors mt-4 py-2"
-            >
+            <Link href="/tienda" className="block w-full text-center label-tag text-muted-foreground hover:text-foreground transition-colors mt-4 py-2">
               SEGUIR COMPRANDO
             </Link>
           </div>

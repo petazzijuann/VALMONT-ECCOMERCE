@@ -59,8 +59,36 @@ export default async function PedidoPage({
               <span className="price-text text-lg">{formatARS(Number(order.total_amount))}</span>
             </div>
           </div>
-          <p className="label-tag text-cream-dark mt-4 text-[10px]">
-            Enviá el comprobante por Instagram o WhatsApp con tu número de pedido.
+          <div className="mt-4 pt-4 border-t border-green-mid flex flex-col gap-1 text-sm">
+            {process.env.CONTACT_PHONE && (
+              <div className="flex justify-between">
+                <span className="text-cream-dark">WhatsApp</span>
+                <a
+                  href={`https://wa.me/${process.env.CONTACT_PHONE.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-white transition-colors"
+                >
+                  {process.env.CONTACT_PHONE}
+                </a>
+              </div>
+            )}
+            {process.env.INSTAGRAM_HANDLE && (
+              <div className="flex justify-between">
+                <span className="text-cream-dark">Instagram</span>
+                <a
+                  href={`https://instagram.com/${process.env.INSTAGRAM_HANDLE}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-white transition-colors"
+                >
+                  @{process.env.INSTAGRAM_HANDLE}
+                </a>
+              </div>
+            )}
+          </div>
+          <p className="label-tag text-cream-dark mt-3 text-[10px]">
+            Enviá el comprobante con tu número de pedido #{order.id.slice(0, 8).toUpperCase()}.
           </p>
         </div>
       )}
