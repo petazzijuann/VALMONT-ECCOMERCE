@@ -40,6 +40,9 @@ export default function CheckoutPage() {
   const [quoteError,   setQuoteError]   = useState("");
 
   const paymentMethod: PaymentMethod = "transfer";
+  // Capturado antes del JSX para evitar que TypeScript lo narrow a `never`
+  // dentro de bloques guardados por `!shippingOption`
+  const selectedShippingType = shippingOption?.type ?? null;
 
   if (items.length === 0) {
     return (
@@ -256,7 +259,7 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => setShippingOption(opt)}
                       className={`w-full text-left border p-3 mt-2 transition-colors ${
-                        shippingOption?.type === opt.type
+                        selectedShippingType === opt.type
                           ? "border-brand-green bg-brand-green/5"
                           : "border-border"
                       }`}
@@ -300,7 +303,7 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => setShippingOption(opt)}
                       className={`w-full text-left border p-3 mt-2 transition-colors ${
-                        shippingOption?.type === opt.type
+                        selectedShippingType === opt.type
                           ? "border-brand-green bg-brand-green/5"
                           : "border-border"
                       }`}
