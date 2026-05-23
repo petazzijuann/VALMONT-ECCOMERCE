@@ -77,7 +77,7 @@ export default function ContactForm() {
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       const errs: Record<string, string> = {};
-      parsed.error.errors.forEach((err) => { errs[String(err.path[0])] = err.message; });
+      parsed.error.issues.forEach((err) => { errs[String(err.path[0])] = err.message; });
       setErrors(errs);
       return;
     }

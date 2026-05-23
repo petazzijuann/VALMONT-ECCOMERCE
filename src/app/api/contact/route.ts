@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    const first = parsed.error.errors[0];
+    const first = parsed.error.issues[0];
     return NextResponse.json({ error: first.message, field: String(first.path[0]) }, { status: 400 });
   }
 
