@@ -2,8 +2,7 @@ import type { Context } from "telegraf";
 import slugify from "slugify";
 import { prisma } from "@/lib/prisma/client";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
-import { generateProductContent } from "@/lib/openai/generate-description";
-import { getSession, setSession, clearSession, type BotSessionData } from "../state";
+import { getSession, setSession, clearSession } from "../state";
 import { formatARS } from "@/lib/utils";
 
 const CATEGORIES = ["remeras", "pantalones", "buzos", "accesorios", "calzado"];
@@ -143,19 +142,24 @@ export async function handleText(ctx: Context) {
         await ctx.reply("❌ Precio inválido. Enviá un número, ej: 12000");
         return;
       }
+      await setSession(chatId, {
+        ...session,
+        state: "upload_waiting_description",
+        uploadData: { ...session.uploadData, price_cost: cost },
+      });
+      await ctx.reply("📝 ¿Descripción del producto?");
+      break;
+    }
 
-      const waiting = await ctx.reply("🤖 Generando descripción con IA...");
-      const { description, tags } = await generateProductContent(
-        session.uploadData?.name ?? "",
-        session.uploadData?.category ?? ""
-      );
-      await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
-
+    case "upload_waiting_description": {
+      if (text.length < 5) {
+        await ctx.reply("❌ Descripción demasiado corta. Escribí algo más.");
+        return;
+      }
       const updatedData = {
         ...session.uploadData,
-        price_cost: cost,
-        description,
-        tags,
+        description: text,
+        tags: [] as string[],
       };
       await setSession(chatId, {
         state: "upload_confirming",
@@ -163,7 +167,7 @@ export async function handleText(ctx: Context) {
       });
 
       const margin = Math.round(
-        ((updatedData.price_sale! - cost) / updatedData.price_sale!) * 100
+        ((updatedData.price_sale! - updatedData.price_cost!) / updatedData.price_sale!) * 100
       );
 
       await ctx.reply(
@@ -172,9 +176,8 @@ export async function handleText(ctx: Context) {
         `🏷 Categoría: ${updatedData.category}\n` +
         `📦 Stock: ${stockSummary(updatedData.stock ?? {})}\n` +
         `💰 Venta: ${formatARS(updatedData.price_sale!)}\n` +
-        `🔒 Costo: ${formatARS(cost)} _(margen ${margin}%)_\n\n` +
-        `📝 _${description}_\n` +
-        `🔖 ${tags.join(", ")}`,
+        `🔒 Costo: ${formatARS(updatedData.price_cost!)} _(margen ${margin}%)_\n\n` +
+        `📝 _${text}_`,
         {
           parse_mode: "Markdown",
           reply_markup: {

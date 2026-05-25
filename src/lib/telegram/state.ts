@@ -8,6 +8,7 @@ export type BotState =
   | "upload_waiting_stock"
   | "upload_waiting_price_sale"
   | "upload_waiting_price_cost"
+  | "upload_waiting_description"
   | "upload_confirming"
   | "sale_waiting_search"
   | "sale_waiting_size"
