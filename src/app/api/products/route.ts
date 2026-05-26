@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
 import type { Prisma } from "../../../generated/prisma/client";
+import type { ColorVariant, StockMap } from "@/types";
 
 const SELECT = {
   id: true,
@@ -38,12 +39,20 @@ export async function GET(request: NextRequest) {
     take: limit,
   });
 
-  const serialized = products.map((p) => ({
-    ...p,
-    price_sale: Number(p.price_sale),
-    created_at: p.created_at.toISOString(),
-    updated_at: p.updated_at.toISOString(),
-  }));
+  const serialized = products
+    .map((p) => ({
+      ...p,
+      price_sale: Number(p.price_sale),
+      created_at: p.created_at.toISOString(),
+      updated_at: p.updated_at.toISOString(),
+    }))
+    .filter((p) => {
+      const variants = (p.color_variants ?? []) as ColorVariant[];
+      if (variants.length > 0) {
+        return variants.some((v) => Object.values(v.stock).some((q) => q > 0));
+      }
+      return Object.values(p.stock as StockMap).some((q) => q > 0);
+    });
 
   return NextResponse.json(serialized);
 }
