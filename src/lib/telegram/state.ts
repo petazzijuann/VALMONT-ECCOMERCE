@@ -4,6 +4,7 @@ import type { ColorVariant } from "@/types";
 export type BotState =
   | "idle"
   | "upload_waiting_photo"
+  | "upload_waiting_photos"
   | "upload_waiting_name"
   | "upload_waiting_category"
   | "upload_waiting_color_decision"
@@ -30,7 +31,7 @@ export type BotState =
   | "addcolor_confirming";
 
 export interface UploadData {
-  photo_url?:      string;
+  photo_urls?:     string[];
   name?:           string;
   category?:       string;
   stock?:          Record<string, number>;

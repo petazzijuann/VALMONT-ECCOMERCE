@@ -98,18 +98,39 @@ export async function handlePhoto(ctx: Context) {
 
   const fileId = msg.photo[msg.photo.length - 1].file_id;
 
-  // ── Foto inicial del producto (single-color flow) ──
+  // ── Primera foto del producto ──
   if (session.state === "upload_waiting_photo") {
     const waiting = await ctx.reply("⏳ Subiendo imagen...");
     try {
-      const fileLink     = await ctx.telegram.getFileLink(fileId);
+      const fileLink      = await ctx.telegram.getFileLink(fileId);
       const cloudinaryUrl = await uploadToCloudinary(fileLink.toString());
       await setSession(chatId, {
-        state: "upload_waiting_name",
-        uploadData: { photo_url: cloudinaryUrl },
+        state: "upload_waiting_photos",
+        uploadData: { photo_urls: [cloudinaryUrl] },
       });
       await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
-      await ctx.reply("✅ Foto subida.\n\n¿Cómo se llama el producto?");
+      await ctx.reply("📷 Foto 1 recibida. Enviá más o escribí *LISTO*.", { parse_mode: "Markdown" });
+    } catch {
+      await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
+      await ctx.reply("❌ Error subiendo la foto. Intentá de nuevo.");
+    }
+    return;
+  }
+
+  // ── Fotos adicionales del producto (sigue acumulando) ──
+  if (session.state === "upload_waiting_photos") {
+    const waiting = await ctx.reply("⏳ Subiendo foto...");
+    try {
+      const fileLink      = await ctx.telegram.getFileLink(fileId);
+      const cloudinaryUrl = await uploadToCloudinary(fileLink.toString());
+      const current       = session.uploadData?.photo_urls ?? [];
+      const updated       = [...current, cloudinaryUrl];
+      await setSession(chatId, {
+        ...session,
+        uploadData: { ...session.uploadData, photo_urls: updated },
+      });
+      await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
+      await ctx.reply(`📷 Foto ${updated.length} recibida. Enviá más o escribí *LISTO*.`, { parse_mode: "Markdown" });
     } catch {
       await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
       await ctx.reply("❌ Error subiendo la foto. Intentá de nuevo.");
@@ -144,6 +165,18 @@ export async function handleText(ctx: Context) {
   const text    = (ctx.message as { text?: string })?.text?.trim() ?? "";
 
   switch (session.state) {
+    case "upload_waiting_photos": {
+      if (text.toUpperCase() !== "LISTO") return;
+      const photos = session.uploadData?.photo_urls ?? [];
+      if (photos.length === 0) {
+        await ctx.reply("❌ Tenés que subir al menos una foto antes de escribir LISTO.");
+        return;
+      }
+      await setSession(chatId, { ...session, state: "upload_waiting_name" });
+      await ctx.reply(`✅ ${photos.length} foto(s) guardadas.\n\n¿Cómo se llama el producto?`);
+      break;
+    }
+
     case "upload_waiting_name": {
       await setSession(chatId, {
         ...session,
@@ -155,20 +188,19 @@ export async function handleText(ctx: Context) {
     }
 
     case "upload_waiting_color_name": {
-      const isFirstColor = (session.uploadData?.color_variants ?? []).length === 0;
+      const isFirstColor  = (session.uploadData?.color_variants ?? []).length === 0;
+      const initialPhotos = session.uploadData?.photo_urls ?? [];
       await setSession(chatId, {
         ...session,
         state: "upload_waiting_color_photos",
         uploadData: {
           ...session.uploadData,
           current_color:  text,
-          current_photos: isFirstColor && session.uploadData?.photo_url
-            ? [session.uploadData.photo_url]
-            : [],
+          current_photos: isFirstColor && initialPhotos.length > 0 ? initialPhotos : [],
         },
       });
-      const initial = isFirstColor && session.uploadData?.photo_url
-        ? "Ya tengo 1 foto (la inicial). Enviá más o escribí *LISTO*."
+      const initial = isFirstColor && initialPhotos.length > 0
+        ? `Ya tengo ${initialPhotos.length} foto(s) (las iniciales). Enviá más o escribí *LISTO*.`
         : `Enviá las fotos para *${text}*. Cuando termines escribí *LISTO*.`;
       await ctx.reply(initial, { parse_mode: "Markdown" });
       break;
@@ -373,9 +405,10 @@ export async function handleCallback(ctx: Context) {
     const firstVariant = hasColors ? d.color_variants![0] : null;
 
     // color_variants para guardar
+    const baseImages: string[] = hasColors ? (firstVariant?.images ?? []) : (d.photo_urls ?? []);
     const colorVariantsData: ColorVariant[] = hasColors
       ? d.color_variants!
-      : [{ name: "Único", images: d.photo_url ? [d.photo_url] : [], stock: d.stock ?? {} }];
+      : [{ name: "Único", images: d.photo_urls ?? [], stock: d.stock ?? {} }];
 
     const product = await prisma.product.create({
       data: {
@@ -383,7 +416,7 @@ export async function handleCallback(ctx: Context) {
         slug,
         description:    d.description!,
         category:       d.category!,
-        images:         hasColors ? (firstVariant?.images ?? []) : (d.photo_url ? [d.photo_url] : []),
+        images:         baseImages,
         tags:           d.tags ?? [],
         price_sale:     d.price_sale!,
         price_cost:     d.price_cost!,
