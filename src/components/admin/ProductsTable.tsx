@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import useSWR from "swr";
-import type { ProductAdmin, StockMap } from "@/types";
+import type { ProductAdmin, StockMap, ColorVariant } from "@/types";
 import { formatARS, calculateMargin } from "@/lib/utils";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import EditProductSheet from "./EditProductSheet";
@@ -135,8 +135,10 @@ export default function ProductsTable() {
                   </tr>
                 )
               : products?.map((p) => {
-                  const stock = p.stock as StockMap;
-                  const totalUnits = Object.values(stock).reduce((s, q) => s + q, 0);
+                  const variants = (p.color_variants ?? []) as ColorVariant[];
+                  const totalUnits = variants.length > 0
+                    ? variants.reduce((sum, v) => sum + Object.values(v.stock).reduce((a, q) => a + q, 0), 0)
+                    : Object.values(p.stock as StockMap).reduce((s, q) => s + q, 0);
                   const margin = calculateMargin(p.price_sale, p.price_cost);
                   return (
                     <tr

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
-import type { DashboardMetrics, StockMap } from "@/types";
+import type { DashboardMetrics, StockMap, ColorVariant } from "@/types";
+
+function totalUnits(product: { stock: unknown; color_variants: unknown }): number {
+  const variants = product.color_variants as ColorVariant[] | null;
+  if (Array.isArray(variants) && variants.length > 0) {
+    return variants.reduce((sum, v) => sum + Object.values(v.stock).reduce((a, q) => a + q, 0), 0);
+  }
+  return Object.values(product.stock as StockMap).reduce((a, q) => a + q, 0);
+}
 
 function startOf(unit: "today" | "week" | "month"): Date {
   const now = new Date();
@@ -30,7 +38,7 @@ export async function GET(request: NextRequest) {
       orderBy: { created_at: "asc" },
     }),
     prisma.product.findMany({
-      select: { name: true, stock: true, price_sale: true, price_cost: true },
+      select: { name: true, stock: true, color_variants: true, price_sale: true, price_cost: true },
     }),
   ]);
 
@@ -59,32 +67,24 @@ export async function GET(request: NextRequest) {
       margin:       d.rev > 0 ? Math.round(((d.rev - d.cost) / d.rev) * 100) : 0,
     }));
 
-  // Low stock: any size ≤ 3
+  // Low stock: any size ≤ 3 (across all color variants)
   const low_stock = products
     .filter((p) => {
-      const s = p.stock as StockMap;
-      return Object.values(s).some((q) => q <= 3);
+      const variants = p.color_variants as ColorVariant[] | null;
+      if (Array.isArray(variants) && variants.length > 0) {
+        return variants.some((v) => Object.values(v.stock).some((q) => q <= 3));
+      }
+      return Object.values(p.stock as StockMap).some((q) => q <= 3);
     })
-    .map((p) => {
-      const s = p.stock as StockMap;
-      return {
-        name:        p.name,
-        stock:       s,
-        total_units: Object.values(s).reduce((acc, q) => acc + q, 0),
-      };
-    });
+    .map((p) => ({
+      name:        p.name,
+      stock:       p.stock as StockMap,
+      total_units: totalUnits(p),
+    }));
 
   // Stock values
-  const stock_value_cost = products.reduce((acc, p) => {
-    const s = p.stock as StockMap;
-    const units = Object.values(s).reduce((a, q) => a + q, 0);
-    return acc + units * Number(p.price_cost);
-  }, 0);
-  const stock_value_sale = products.reduce((acc, p) => {
-    const s = p.stock as StockMap;
-    const units = Object.values(s).reduce((a, q) => a + q, 0);
-    return acc + units * Number(p.price_sale);
-  }, 0);
+  const stock_value_cost = products.reduce((acc, p) => acc + totalUnits(p) * Number(p.price_cost), 0);
+  const stock_value_sale = products.reduce((acc, p) => acc + totalUnits(p) * Number(p.price_sale), 0);
 
   // Sales by day
   const dayMap: Record<string, { revenue: number; profit: number }> = {};
