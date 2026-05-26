@@ -20,6 +20,7 @@ const orderSchema = z.object({
     slug:       z.string(),
     name:       z.string(),
     size:       z.string(),
+    color:      z.string().nullable().optional(),
     qty:        z.number().int().positive(),
     price:      z.number().positive(),
   })).min(1),

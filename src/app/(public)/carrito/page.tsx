@@ -122,7 +122,7 @@ export default function CarritoPage() {
         {/* Items */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {items.map((item) => (
-            <div key={`${item.product_id}-${item.size}`} className="flex gap-4 pb-6 border-b border-border">
+            <div key={`${item.product_id}-${item.size}-${item.color ?? ""}`} className="flex gap-4 pb-6 border-b border-border">
               <div className="relative w-24 h-32 bg-muted shrink-0 overflow-hidden">
                 {item.image ? (
                   <Image src={item.image} alt={item.name} fill className="object-cover" sizes="96px" />
@@ -134,17 +134,19 @@ export default function CarritoPage() {
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="font-bebas text-xl">{item.name}</h3>
-                  <p className="label-tag text-muted-foreground mt-1">Talle {item.size}</p>
+                  <p className="label-tag text-muted-foreground mt-1">
+                    Talle {item.size}{item.color && item.color !== "Único" ? ` · ${item.color.toUpperCase()}` : ""}
+                  </p>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center border border-border">
-                    <button onClick={() => updateQuantity(item.product_id, item.size, item.quantity - 1)} className="px-3 py-2 text-sm hover:bg-muted transition-colors">−</button>
+                    <button onClick={() => updateQuantity(item.product_id, item.size, item.color, item.quantity - 1)} className="px-3 py-2 text-sm hover:bg-muted transition-colors">−</button>
                     <span className="px-4 py-2 text-sm border-x border-border min-w-[40px] text-center">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.product_id, item.size, item.quantity + 1)} className="px-3 py-2 text-sm hover:bg-muted transition-colors">+</button>
+                    <button onClick={() => updateQuantity(item.product_id, item.size, item.color, item.quantity + 1)} className="px-3 py-2 text-sm hover:bg-muted transition-colors">+</button>
                   </div>
                   <div className="flex items-center gap-4">
                     <p className="price-text">{formatARS(item.price * item.quantity)}</p>
-                    <button onClick={() => removeItem(item.product_id, item.size)} className="text-muted-foreground hover:text-valmont-error transition-colors">
+                    <button onClick={() => removeItem(item.product_id, item.size, item.color)} className="text-muted-foreground hover:text-valmont-error transition-colors">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -166,8 +168,8 @@ export default function CarritoPage() {
             {/* Items */}
             <div className="flex flex-col gap-3 mb-4 text-sm">
               {items.map((item) => (
-                <div key={`${item.product_id}-${item.size}`} className="flex justify-between text-muted-foreground">
-                  <span>{item.name} ({item.size}) ×{item.quantity}</span>
+                <div key={`${item.product_id}-${item.size}-${item.color ?? ""}`} className="flex justify-between text-muted-foreground">
+                  <span>{item.name} ({item.size}{item.color && item.color !== "Único" ? ` · ${item.color}` : ""}) ×{item.quantity}</span>
                   <span>{formatARS(item.price * item.quantity)}</span>
                 </div>
               ))}

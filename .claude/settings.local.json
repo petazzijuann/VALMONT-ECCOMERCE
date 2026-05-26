@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Remove-Item *)",
+      "PowerShell(Copy-Item *)",
+      "Bash(npx tsc *)",
+      "WebFetch(domain:dev.andreani.com)",
+      "WebFetch(domain:developers.andreani.com)",
+      "WebFetch(domain:apis.andreani.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.andreani.com)",
+      "Bash(npx prisma *)",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(pnpm prisma *)",
+      "Bash(pnpm exec *)"
+    ]
+  }
+}

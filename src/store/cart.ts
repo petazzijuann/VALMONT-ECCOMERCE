@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, ShippingOption } from "@/types";
+// CartItem re-exported so match() lambda can reference its type
 
 interface CartStore {
   items: CartItem[];
@@ -11,8 +12,8 @@ interface CartStore {
   shippingCp: string;
 
   addItem: (item: CartItem) => void;
-  removeItem: (productId: string, size: string) => void;
-  updateQuantity: (productId: string, size: string, quantity: number) => void;
+  removeItem: (productId: string, size: string, color: string | null) => void;
+  updateQuantity: (productId: string, size: string, color: string | null, quantity: number) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -34,15 +35,16 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (newItem) => {
         set((state) => {
-          const existing = state.items.find(
-            (i) => i.product_id === newItem.product_id && i.size === newItem.size
-          );
+          const match = (i: CartItem) =>
+            i.product_id === newItem.product_id &&
+            i.size === newItem.size &&
+            i.color === newItem.color;
+
+          const existing = state.items.find(match);
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.product_id === newItem.product_id && i.size === newItem.size
-                  ? { ...i, quantity: i.quantity + newItem.quantity }
-                  : i
+                match(i) ? { ...i, quantity: i.quantity + newItem.quantity } : i
               ),
               isOpen: true,
             };
@@ -51,22 +53,24 @@ export const useCartStore = create<CartStore>()(
         });
       },
 
-      removeItem: (productId, size) => {
+      removeItem: (productId, size, color) => {
         set((state) => ({
           items: state.items.filter(
-            (i) => !(i.product_id === productId && i.size === size)
+            (i) => !(i.product_id === productId && i.size === size && i.color === color)
           ),
         }));
       },
 
-      updateQuantity: (productId, size, quantity) => {
+      updateQuantity: (productId, size, color, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(productId, size);
+          get().removeItem(productId, size, color);
           return;
         }
         set((state) => ({
           items: state.items.map((i) =>
-            i.product_id === productId && i.size === size ? { ...i, quantity } : i
+            i.product_id === productId && i.size === size && i.color === color
+              ? { ...i, quantity }
+              : i
           ),
         }));
       },

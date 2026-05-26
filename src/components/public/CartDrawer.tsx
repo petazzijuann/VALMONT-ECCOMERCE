@@ -61,7 +61,7 @@ export default function CartDrawer() {
           ) : (
             <ul className="flex flex-col gap-6">
               {items.map((item) => (
-                <li key={`${item.product_id}-${item.size}`} className="flex gap-4">
+                <li key={`${item.product_id}-${item.size}-${item.color ?? ""}`} className="flex gap-4">
                   {/* Imagen */}
                   <div className="w-20 h-24 bg-muted shrink-0 relative overflow-hidden">
                     {item.image ? (
@@ -82,7 +82,7 @@ export default function CartDrawer() {
                     <div>
                       <p className="font-medium text-sm leading-tight">{item.name}</p>
                       <p className="label-tag text-muted-foreground mt-1">
-                        Talle {item.size}
+                        Talle {item.size}{item.color && item.color !== "Único" ? ` · ${item.color.toUpperCase()}` : ""}
                       </p>
                     </div>
 
@@ -91,7 +91,7 @@ export default function CartDrawer() {
                       <div className="flex items-center border border-border">
                         <button
                           onClick={() =>
-                            updateQuantity(item.product_id, item.size, item.quantity - 1)
+                            updateQuantity(item.product_id, item.size, item.color, item.quantity - 1)
                           }
                           className="px-3 py-1 text-sm hover:bg-muted transition-colors"
                         >
@@ -102,7 +102,7 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() =>
-                            updateQuantity(item.product_id, item.size, item.quantity + 1)
+                            updateQuantity(item.product_id, item.size, item.color, item.quantity + 1)
                           }
                           className="px-3 py-1 text-sm hover:bg-muted transition-colors"
                         >
@@ -115,7 +115,7 @@ export default function CartDrawer() {
                           {formatARS(item.price * item.quantity)}
                         </p>
                         <button
-                          onClick={() => removeItem(item.product_id, item.size)}
+                          onClick={() => removeItem(item.product_id, item.size, item.color)}
                           className="text-muted-foreground hover:text-valmont-error transition-colors"
                           aria-label="Eliminar"
                         >

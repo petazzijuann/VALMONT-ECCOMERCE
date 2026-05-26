@@ -7,7 +7,13 @@ import { formatARS } from "@/lib/utils";
 import AddToCartSection from "./AddToCartSection";
 import type { ProductPublic } from "@/types";
 
-export default function ProductInfoAnimated({ product }: { product: ProductPublic }) {
+interface Props {
+  product: ProductPublic;
+  selectedColor?: string | null;
+  onColorChange?: (color: string) => void;
+}
+
+export default function ProductInfoAnimated({ product, selectedColor, onColorChange }: Props) {
   const containerRef              = useRef<HTMLDivElement>(null);
   const [displayPrice, setDisplayPrice] = useState(0);
 
@@ -84,7 +90,11 @@ export default function ProductInfoAnimated({ product }: { product: ProductPubli
       </div>
 
       <div className="info-cart">
-        <AddToCartSection product={product} />
+        <AddToCartSection
+          product={product}
+          selectedColor={selectedColor ?? null}
+          onColorChange={onColorChange}
+        />
       </div>
 
       {product.description && (

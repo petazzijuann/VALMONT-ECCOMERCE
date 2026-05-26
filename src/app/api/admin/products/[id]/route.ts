@@ -4,15 +4,22 @@ import { prisma } from "@/lib/prisma/client";
 
 const stockSchema = z.record(z.string(), z.number().min(0));
 
+const colorVariantSchema = z.object({
+  name:   z.string(),
+  images: z.array(z.string()),
+  stock:  stockSchema,
+});
+
 const putSchema = z.object({
-  name:         z.string().min(1),
-  description:  z.string().optional().default(""),
-  category:     z.enum(["remeras", "pantalones", "buzos", "accesorios", "calzado"]),
-  price_sale:   z.number().positive(),
-  price_cost:   z.number().positive(),
-  stock:        stockSchema,
-  tags:         z.array(z.string()),
-  is_published: z.boolean(),
+  name:           z.string().min(1),
+  description:    z.string().optional().default(""),
+  category:       z.enum(["remeras", "pantalones", "buzos", "accesorios", "calzado"]),
+  price_sale:     z.number().positive(),
+  price_cost:     z.number().positive(),
+  stock:          stockSchema,
+  tags:           z.array(z.string()),
+  is_published:   z.boolean(),
+  color_variants: z.array(colorVariantSchema).optional(),
 });
 
 export async function PATCH(
@@ -52,14 +59,17 @@ export async function PUT(
   const updated = await prisma.product.update({
     where: { id },
     data: {
-      name:         parsed.data.name,
-      description:  parsed.data.description,
-      category:     parsed.data.category,
-      price_sale:   parsed.data.price_sale,
-      price_cost:   parsed.data.price_cost,
-      stock:        parsed.data.stock as Record<string, number>,
-      tags:         parsed.data.tags,
-      is_published: parsed.data.is_published,
+      name:           parsed.data.name,
+      description:    parsed.data.description,
+      category:       parsed.data.category,
+      price_sale:     parsed.data.price_sale,
+      price_cost:     parsed.data.price_cost,
+      stock:          parsed.data.stock as Record<string, number>,
+      tags:           parsed.data.tags,
+      is_published:   parsed.data.is_published,
+      ...(parsed.data.color_variants !== undefined && {
+        color_variants: parsed.data.color_variants,
+      }),
     },
   });
 

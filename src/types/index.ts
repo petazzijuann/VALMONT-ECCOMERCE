@@ -18,6 +18,12 @@ export type SaleChannel = "online" | "offline";
 
 export type StockMap = Record<string, number>;
 
+export interface ColorVariant {
+  name: string;
+  images: string[];
+  stock: Record<string, number>;
+}
+
 export interface ProductPublic {
   id: string;
   name: string;
@@ -28,6 +34,7 @@ export interface ProductPublic {
   tags: string[];
   price_sale: number;
   stock: StockMap;
+  color_variants: ColorVariant[];
   is_published: boolean;
   created_at: string;
   updated_at: string;
@@ -43,6 +50,7 @@ export interface OrderItem {
   slug: string;
   name: string;
   size: string;
+  color?: string | null;
   qty: number;
   price: number;
 }
@@ -140,6 +148,7 @@ export interface CartItem {
   name: string;
   image: string;
   size: string;
+  color: string | null;
   price: number;
   quantity: number;
 }

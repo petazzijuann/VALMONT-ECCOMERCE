@@ -116,6 +116,7 @@ export default function CheckoutPage() {
           slug:       i.slug,
           name:       i.name,
           size:       i.size,
+          color:      i.color ?? null,
           qty:        i.quantity,
           price:      i.price,
         })),
@@ -338,8 +339,8 @@ export default function CheckoutPage() {
 
               <ul className="flex flex-col gap-3 mb-4">
                 {items.map((item) => (
-                  <li key={`${item.product_id}-${item.size}`} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{item.name} ({item.size}) ×{item.quantity}</span>
+                  <li key={`${item.product_id}-${item.size}-${item.color ?? ""}`} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{item.name} ({item.size}{item.color && item.color !== "Único" ? ` · ${item.color}` : ""}) ×{item.quantity}</span>
                     <span>{formatARS(item.price * item.quantity)}</span>
                   </li>
                 ))}

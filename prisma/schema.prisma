@@ -18,6 +18,7 @@ model Product {
   price_sale       Decimal  @db.Decimal(10, 2)
   price_cost       Decimal  @db.Decimal(10, 2)
   stock            Json
+  color_variants   Json     @default("[]")
   is_published     Boolean  @default(false)
   instagram_posted Boolean  @default(false)
   created_at       DateTime @default(now())

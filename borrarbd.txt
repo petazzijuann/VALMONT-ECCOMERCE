@@ -1,0 +1,8 @@
+ node --env-file=.env.local -e "
+  const { PrismaClient } = require('./src/generated/prisma/client');
+  const { PrismaPg } = require('@prisma/adapter-pg');
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const prisma = new PrismaClient({ adapter });
+  prisma.sale.deleteMany().then(() => prisma.order.deleteMany()).then(() => prisma.telegramSession.deleteMany()).then(()
+   => prisma.product.deleteMany()).then(() => { console.log('Listo'); prisma.\$disconnect(); });
+  "

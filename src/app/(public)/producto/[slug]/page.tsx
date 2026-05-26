@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma/client";
-import ImageGallery from "@/components/public/ImageGallery";
-import ProductInfoAnimated from "@/components/public/ProductInfoAnimated";
+import ProductPageClient from "@/components/public/ProductPageClient";
 import StickyCartBar from "@/components/public/StickyCartBar";
 import type { ProductPublic, StockMap } from "@/types";
 
@@ -62,8 +61,8 @@ export default async function ProductoPage({
     select: {
       id: true, name: true, slug: true, description: true,
       category: true, images: true, tags: true,
-      price_sale: true, stock: true, is_published: true,
-      created_at: true, updated_at: true,
+      price_sale: true, stock: true, color_variants: true,
+      is_published: true, created_at: true, updated_at: true,
     },
   });
 
@@ -71,9 +70,10 @@ export default async function ProductoPage({
 
   const product = {
     ...raw,
-    price_sale: Number(raw.price_sale),
-    created_at: raw.created_at.toISOString(),
-    updated_at: raw.updated_at.toISOString(),
+    price_sale:     Number(raw.price_sale),
+    color_variants: (raw.color_variants ?? []) as unknown as ProductPublic["color_variants"],
+    created_at:     raw.created_at.toISOString(),
+    updated_at:     raw.updated_at.toISOString(),
   } as ProductPublic;
 
   const stock    = product.stock as StockMap;
@@ -124,15 +124,7 @@ export default async function ProductoPage({
           <span className="text-foreground">{product.name.toUpperCase()}</span>
         </nav>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
-          {/* Galería */}
-          <div className="opacity-0 animate-[fadeSlideUp_0.8s_ease-out_0.1s_forwards]">
-            <ImageGallery images={product.images} name={product.name} />
-          </div>
-
-          {/* Info animada */}
-          <ProductInfoAnimated product={product} />
-        </div>
+        <ProductPageClient product={product} />
       </div>
 
       {/* Barra sticky mobile */}

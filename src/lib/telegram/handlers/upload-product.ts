@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma/client";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 import { getSession, setSession, clearSession } from "../state";
 import { formatARS } from "@/lib/utils";
+import type { ColorVariant } from "@/types";
 
 const CATEGORIES = ["remeras", "pantalones", "buzos", "accesorios", "calzado"];
 
@@ -21,12 +22,24 @@ const CATEGORY_KEYBOARD = {
   ],
 };
 
+const COLOR_DECISION_KEYBOARD = {
+  inline_keyboard: [[
+    { text: "🎨 Único color",     callback_data: "color_decision:single" },
+    { text: "🌈 Varios colores",  callback_data: "color_decision:multi" },
+  ]],
+};
+
+const COLOR_MORE_KEYBOARD = {
+  inline_keyboard: [[
+    { text: "✅ Sí, agregar otro", callback_data: "color_more:yes" },
+    { text: "🏁 No, listo",        callback_data: "color_more:no" },
+  ]],
+};
+
 function parseStock(text: string): Record<string, number> | null {
-  // Acepta "S:2 M:3 L:5 XL:2" o "S 2 M 3 L 5"
   const stock: Record<string, number> = {};
   const pairs = text.toUpperCase().match(/([A-Z]+)\s*[:\s]\s*(\d+)/g);
   if (!pairs || pairs.length === 0) return null;
-
   for (const pair of pairs) {
     const parts = pair.split(/[:\s]+/).filter(Boolean);
     if (parts.length === 2) {
@@ -34,61 +47,95 @@ function parseStock(text: string): Record<string, number> | null {
       if (!isNaN(qty) && qty >= 0) stock[parts[0]] = qty;
     }
   }
-
   return Object.keys(stock).length > 0 ? stock : null;
 }
 
 function stockSummary(stock: Record<string, number>): string {
-  return Object.entries(stock)
-    .map(([size, qty]) => `${size}: ${qty}`)
-    .join(" | ");
+  return Object.entries(stock).map(([s, q]) => `${s}: ${q}`).join(" | ");
 }
 
-// ── Comando /nuevo ───────────────────────────────────────────
+function colorEmoji(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("negro") || n.includes("black")) return "⚫";
+  if (n.includes("blanco") || n.includes("white")) return "⚪";
+  if (n.includes("rojo") || n.includes("red"))    return "🔴";
+  if (n.includes("verde") || n.includes("green")) return "🟢";
+  if (n.includes("azul") || n.includes("blue"))   return "🔵";
+  if (n.includes("amarillo") || n.includes("yellow")) return "🟡";
+  if (n.includes("naranja") || n.includes("orange"))  return "🟠";
+  return "🎨";
+}
+
+function variantsSummary(variants: ColorVariant[]): string {
+  return variants
+    .map((v) => `  ${colorEmoji(v.name)} ${v.name} — ${stockSummary(v.stock)}`)
+    .join("\n");
+}
+
+// ── Comando /nuevo ────────────────────────────────────────────
 export async function handleNuevo(ctx: Context) {
   const chatId = ctx.from!.id.toString();
   await clearSession(chatId);
   await setSession(chatId, { state: "upload_waiting_photo" });
   await ctx.reply(
-    "📸 *Nuevo producto*\n\nEnviá la foto del producto (podés mandar varias, pero la primera se usa como principal).",
+    "📸 *Nuevo producto*\n\nEnviá la foto del producto.",
     { parse_mode: "Markdown" }
   );
 }
 
-// ── Foto recibida ────────────────────────────────────────────
+// ── Foto recibida ─────────────────────────────────────────────
 export async function handlePhoto(ctx: Context) {
-  const chatId = ctx.from!.id.toString();
+  const chatId  = ctx.from!.id.toString();
   const session = await getSession(chatId);
-  if (session.state !== "upload_waiting_photo") return;
-
-  const msg = ctx.message as { photo?: Array<{ file_id: string }> };
+  const msg     = ctx.message as { photo?: Array<{ file_id: string }> };
   if (!msg?.photo?.length) return;
 
   const fileId = msg.photo[msg.photo.length - 1].file_id;
-  const waiting = await ctx.reply("⏳ Subiendo imagen...");
 
-  try {
-    const fileLink = await ctx.telegram.getFileLink(fileId);
-    const cloudinaryUrl = await uploadToCloudinary(fileLink.toString());
+  // ── Foto inicial del producto (single-color flow) ──
+  if (session.state === "upload_waiting_photo") {
+    const waiting = await ctx.reply("⏳ Subiendo imagen...");
+    try {
+      const fileLink     = await ctx.telegram.getFileLink(fileId);
+      const cloudinaryUrl = await uploadToCloudinary(fileLink.toString());
+      await setSession(chatId, {
+        state: "upload_waiting_name",
+        uploadData: { photo_url: cloudinaryUrl },
+      });
+      await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
+      await ctx.reply("✅ Foto subida.\n\n¿Cómo se llama el producto?");
+    } catch {
+      await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
+      await ctx.reply("❌ Error subiendo la foto. Intentá de nuevo.");
+    }
+    return;
+  }
 
-    await setSession(chatId, {
-      state: "upload_waiting_name",
-      uploadData: { photo_url: cloudinaryUrl },
-    });
-
-    await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
-    await ctx.reply("✅ Foto subida.\n\n¿Cómo se llama el producto?");
-  } catch {
-    await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
-    await ctx.reply("❌ Error subiendo la foto. Intentá de nuevo.");
+  // ── Fotos por color (multi-color flow) ──
+  if (session.state === "upload_waiting_color_photos") {
+    const waiting = await ctx.reply("⏳ Subiendo foto...");
+    try {
+      const fileLink     = await ctx.telegram.getFileLink(fileId);
+      const cloudinaryUrl = await uploadToCloudinary(fileLink.toString());
+      const current       = session.uploadData?.current_photos ?? [];
+      const updated       = [...current, cloudinaryUrl];
+      await setSession(chatId, {
+        ...session,
+        uploadData: { ...session.uploadData, current_photos: updated },
+      });
+      await ctx.telegram.deleteMessage(ctx.chat!.id, waiting.message_id);
+      await ctx.reply(`📷 Foto ${updated.length} recibida. Seguí enviando o escribí *LISTO*.`, { parse_mode: "Markdown" });
+    } catch {
+      await ctx.reply("❌ Error subiendo la foto. Intentá de nuevo.");
+    }
   }
 }
 
-// ── Texto: ruteado por estado ────────────────────────────────
+// ── Texto: ruteado por estado ─────────────────────────────────
 export async function handleText(ctx: Context) {
-  const chatId = ctx.from!.id.toString();
+  const chatId  = ctx.from!.id.toString();
   const session = await getSession(chatId);
-  const text = (ctx.message as { text?: string })?.text?.trim() ?? "";
+  const text    = (ctx.message as { text?: string })?.text?.trim() ?? "";
 
   switch (session.state) {
     case "upload_waiting_name": {
@@ -101,13 +148,71 @@ export async function handleText(ctx: Context) {
       break;
     }
 
+    case "upload_waiting_color_name": {
+      await setSession(chatId, {
+        ...session,
+        state: "upload_waiting_color_photos",
+        uploadData: {
+          ...session.uploadData,
+          current_color:  text,
+          current_photos: session.uploadData?.photo_url ? [session.uploadData.photo_url] : [],
+        },
+      });
+      const initial = session.uploadData?.photo_url
+        ? "Ya tengo 1 foto (la inicial). Enviá más o escribí *LISTO*."
+        : `Enviá las fotos para *${text}*. Cuando termines escribí *LISTO*.`;
+      await ctx.reply(initial, { parse_mode: "Markdown" });
+      break;
+    }
+
+    case "upload_waiting_color_photos": {
+      if (text.toUpperCase() !== "LISTO") return;
+      const photos = session.uploadData?.current_photos ?? [];
+      if (photos.length === 0) {
+        await ctx.reply("❌ Tenés que subir al menos una foto antes de escribir LISTO.");
+        return;
+      }
+      await setSession(chatId, { ...session, state: "upload_waiting_color_stock" });
+      await ctx.reply(
+        `✅ ${photos.length} foto(s) para *${session.uploadData?.current_color}* guardadas.\n\n📦 Stock para *${session.uploadData?.current_color}*:\n\`S:2 M:3 L:5 XL:2\``,
+        { parse_mode: "Markdown" }
+      );
+      break;
+    }
+
+    case "upload_waiting_color_stock": {
+      const stock = parseStock(text);
+      if (!stock) {
+        await ctx.reply("❌ Formato incorrecto. Usá:\n`S:2 M:3 L:5 XL:2`", { parse_mode: "Markdown" });
+        return;
+      }
+      const newVariant: ColorVariant = {
+        name:   session.uploadData!.current_color!,
+        images: session.uploadData!.current_photos!,
+        stock,
+      };
+      const variants = [...(session.uploadData?.color_variants ?? []), newVariant];
+      await setSession(chatId, {
+        ...session,
+        state: "upload_color_asking_more",
+        uploadData: {
+          ...session.uploadData,
+          color_variants:  variants,
+          current_color:   undefined,
+          current_photos:  undefined,
+        },
+      });
+      await ctx.reply(
+        `Stock guardado: ${stockSummary(stock)}\n\n¿Agregar otro color?`,
+        { reply_markup: COLOR_MORE_KEYBOARD }
+      );
+      break;
+    }
+
     case "upload_waiting_stock": {
       const stock = parseStock(text);
       if (!stock) {
-        await ctx.reply(
-          "❌ Formato incorrecto. Usá:\n`S:2 M:3 L:5 XL:2`",
-          { parse_mode: "Markdown" }
-        );
+        await ctx.reply("❌ Formato incorrecto. Usá:\n`S:2 M:3 L:5 XL:2`", { parse_mode: "Markdown" });
         return;
       }
       await setSession(chatId, {
@@ -115,18 +220,13 @@ export async function handleText(ctx: Context) {
         state: "upload_waiting_price_sale",
         uploadData: { ...session.uploadData, stock },
       });
-      await ctx.reply(
-        `Stock guardado: ${stockSummary(stock)}\n\n💰 ¿Precio de venta? (ej: 25000)`
-      );
+      await ctx.reply(`Stock guardado: ${stockSummary(stock)}\n\n💰 ¿Precio de venta? (ej: 25000)`);
       break;
     }
 
     case "upload_waiting_price_sale": {
       const price = parseFloat(text.replace(/[^\d.]/g, ""));
-      if (isNaN(price) || price <= 0) {
-        await ctx.reply("❌ Precio inválido. Enviá un número, ej: 25000");
-        return;
-      }
+      if (isNaN(price) || price <= 0) { await ctx.reply("❌ Precio inválido."); return; }
       await setSession(chatId, {
         ...session,
         state: "upload_waiting_price_cost",
@@ -138,10 +238,7 @@ export async function handleText(ctx: Context) {
 
     case "upload_waiting_price_cost": {
       const cost = parseFloat(text.replace(/[^\d.]/g, ""));
-      if (isNaN(cost) || cost <= 0) {
-        await ctx.reply("❌ Precio inválido. Enviá un número, ej: 12000");
-        return;
-      }
+      if (isNaN(cost) || cost <= 0) { await ctx.reply("❌ Precio inválido."); return; }
       await setSession(chatId, {
         ...session,
         state: "upload_waiting_description",
@@ -152,42 +249,39 @@ export async function handleText(ctx: Context) {
     }
 
     case "upload_waiting_description": {
-      if (text.length < 5) {
-        await ctx.reply("❌ Descripción demasiado corta. Escribí algo más.");
-        return;
-      }
-      const updatedData = {
-        ...session.uploadData,
-        description: text,
-        tags: [] as string[],
-      };
-      await setSession(chatId, {
-        state: "upload_confirming",
-        uploadData: updatedData,
+      if (text.length < 5) { await ctx.reply("❌ Descripción muy corta."); return; }
+
+      const d = { ...session.uploadData, description: text, tags: [] as string[] };
+      await setSession(chatId, { state: "upload_confirming", uploadData: d });
+
+      const hasColors = (d.color_variants?.length ?? 0) > 0;
+      const margin    = Math.round(((d.price_sale! - d.price_cost!) / d.price_sale!) * 100);
+
+      const preview = hasColors
+        ? `*Vista previa del producto:*\n\n` +
+          `📌 *${d.name}*\n` +
+          `🏷 Categoría: ${d.category}\n` +
+          `🎨 Colores:\n${variantsSummary(d.color_variants!)}\n` +
+          `💰 Venta: ${formatARS(d.price_sale!)}\n` +
+          `🔒 Costo: ${formatARS(d.price_cost!)} _(margen ${margin}%)_\n\n` +
+          `📝 _${text}_`
+        : `*Vista previa del producto:*\n\n` +
+          `📌 *${d.name}*\n` +
+          `🏷 Categoría: ${d.category}\n` +
+          `📦 Stock: ${stockSummary(d.stock ?? {})}\n` +
+          `💰 Venta: ${formatARS(d.price_sale!)}\n` +
+          `🔒 Costo: ${formatARS(d.price_cost!)} _(margen ${margin}%)_\n\n` +
+          `📝 _${text}_`;
+
+      await ctx.reply(preview, {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "✅ Confirmar", callback_data: "upload:confirm" },
+            { text: "❌ Cancelar",  callback_data: "upload:cancel" },
+          ]],
+        },
       });
-
-      const margin = Math.round(
-        ((updatedData.price_sale! - updatedData.price_cost!) / updatedData.price_sale!) * 100
-      );
-
-      await ctx.reply(
-        `*Vista previa del producto:*\n\n` +
-        `📌 *${updatedData.name}*\n` +
-        `🏷 Categoría: ${updatedData.category}\n` +
-        `📦 Stock: ${stockSummary(updatedData.stock ?? {})}\n` +
-        `💰 Venta: ${formatARS(updatedData.price_sale!)}\n` +
-        `🔒 Costo: ${formatARS(updatedData.price_cost!)} _(margen ${margin}%)_\n\n` +
-        `📝 _${text}_`,
-        {
-          parse_mode: "Markdown",
-          reply_markup: {
-            inline_keyboard: [[
-              { text: "✅ Confirmar",  callback_data: "upload:confirm" },
-              { text: "❌ Cancelar", callback_data: "upload:cancel" },
-            ]],
-          },
-        }
-      );
       break;
     }
 
@@ -196,11 +290,11 @@ export async function handleText(ctx: Context) {
   }
 }
 
-// ── Callback: categoría y confirmación ───────────────────────
+// ── Callback: categoría, decisión de color y confirmación ─────
 export async function handleCallback(ctx: Context) {
-  const chatId = ctx.from!.id.toString();
+  const chatId  = ctx.from!.id.toString();
   const session = await getSession(chatId);
-  const data = (ctx as { callbackQuery?: { data?: string } }).callbackQuery?.data ?? "";
+  const data    = (ctx as { callbackQuery?: { data?: string } }).callbackQuery?.data ?? "";
 
   await ctx.answerCbQuery();
 
@@ -212,13 +306,45 @@ export async function handleCallback(ctx: Context) {
 
     await setSession(chatId, {
       ...session,
-      state: "upload_waiting_stock",
+      state: "upload_waiting_color_decision",
       uploadData: { ...session.uploadData, category },
     });
     await ctx.reply(
-      `Categoría: *${category}*\n\n📦 ¿Stock por talle?\nEjemplo: \`S:2 M:3 L:5 XL:2\``,
-      { parse_mode: "Markdown" }
+      `Categoría: *${category}*\n\n¿El producto tiene variantes de color?`,
+      { parse_mode: "Markdown", reply_markup: COLOR_DECISION_KEYBOARD }
     );
+    return;
+  }
+
+  // Decisión: un solo color
+  if (data === "color_decision:single") {
+    if (session.state !== "upload_waiting_color_decision") return;
+    await setSession(chatId, { ...session, state: "upload_waiting_stock", uploadData: { ...session.uploadData, has_colors: false } });
+    await ctx.reply("📦 ¿Stock por talle?\n`S:2 M:3 L:5 XL:2`", { parse_mode: "Markdown" });
+    return;
+  }
+
+  // Decisión: varios colores
+  if (data === "color_decision:multi") {
+    if (session.state !== "upload_waiting_color_decision") return;
+    await setSession(chatId, { ...session, state: "upload_waiting_color_name", uploadData: { ...session.uploadData, has_colors: true, color_variants: [] } });
+    await ctx.reply("🎨 ¿Cómo se llama el primer color? (ej: negro, rojo, verde)");
+    return;
+  }
+
+  // Agregar otro color
+  if (data === "color_more:yes") {
+    if (session.state !== "upload_color_asking_more") return;
+    await setSession(chatId, { ...session, state: "upload_waiting_color_name" });
+    await ctx.reply("🎨 ¿Cómo se llama el siguiente color?");
+    return;
+  }
+
+  // No más colores → continuar con precios
+  if (data === "color_more:no") {
+    if (session.state !== "upload_color_asking_more") return;
+    await setSession(chatId, { ...session, state: "upload_waiting_price_sale" });
+    await ctx.reply("💰 ¿Precio de venta? (ej: 25000)");
     return;
   }
 
@@ -231,31 +357,36 @@ export async function handleCallback(ctx: Context) {
     let slug = baseSlug;
     let suffix = 2;
     while (await prisma.product.findUnique({ where: { slug } })) {
-      slug = `${baseSlug}-${suffix}`;
-      suffix++;
+      slug = `${baseSlug}-${suffix++}`;
     }
+
+    const hasColors   = (d.color_variants?.length ?? 0) > 0;
+    const firstVariant = hasColors ? d.color_variants![0] : null;
+
+    // color_variants para guardar
+    const colorVariantsData: ColorVariant[] = hasColors
+      ? d.color_variants!
+      : [{ name: "Único", images: d.photo_url ? [d.photo_url] : [], stock: d.stock ?? {} }];
 
     const product = await prisma.product.create({
       data: {
-        name:         d.name!,
+        name:           d.name!,
         slug,
-        description:  d.description!,
-        category:     d.category!,
-        images:       [d.photo_url!],
-        tags:         d.tags!,
-        price_sale:   d.price_sale!,
-        price_cost:   d.price_cost!,
-        stock:        d.stock!,
-        is_published: false,
+        description:    d.description!,
+        category:       d.category!,
+        images:         hasColors ? (firstVariant?.images ?? []) : (d.photo_url ? [d.photo_url] : []),
+        tags:           d.tags ?? [],
+        price_sale:     d.price_sale!,
+        price_cost:     d.price_cost!,
+        stock:          hasColors ? (firstVariant?.stock ?? {}) : (d.stock ?? {}),
+        color_variants: colorVariantsData as object[],
+        is_published:   false,
       },
     });
 
     await clearSession(chatId);
     await ctx.reply(
-      `✅ *Producto creado*\n\n` +
-      `ID: \`${product.id.slice(0, 8)}\`\n` +
-      `Slug: \`${product.slug}\`\n\n` +
-      `El producto está guardado como *borrador*. Publicalo desde el panel admin.`,
+      `✅ *Producto creado*\n\nID: \`${product.id.slice(0, 8)}\`\nSlug: \`${product.slug}\`\n\nGuardado como *borrador*. Publicalo desde el panel admin.`,
       { parse_mode: "Markdown" }
     );
     return;

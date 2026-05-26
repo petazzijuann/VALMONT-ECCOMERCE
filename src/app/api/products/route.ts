@@ -12,6 +12,7 @@ const SELECT = {
   tags: true,
   price_sale: true,
   stock: true,
+  color_variants: true,
   is_published: true,
   created_at: true,
   updated_at: true,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import type { ProductAdmin, StockMap } from "@/types";
+import type { ProductAdmin, StockMap, ColorVariant } from "@/types";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 const CATEGORIES = ["remeras", "pantalones", "buzos", "accesorios", "calzado"] as const;
@@ -21,12 +21,14 @@ interface FormState {
   price_sale: string;
   price_cost: string;
   stock: Record<string, string>;
+  colorVariants: Array<{ name: string; images: string[]; stock: Record<string, string> }>;
   tags: string;
   is_published: boolean;
 }
 
 function toForm(p: ProductAdmin): FormState {
   const stock = p.stock as StockMap;
+  const variants = (p.color_variants ?? []) as ColorVariant[];
   return {
     name:         p.name,
     description:  p.description ?? "",
@@ -34,22 +36,26 @@ function toForm(p: ProductAdmin): FormState {
     price_sale:   String(p.price_sale),
     price_cost:   String(p.price_cost),
     stock:        Object.fromEntries(SIZES.map((s) => [s, String(stock[s] ?? 0)])),
+    colorVariants: variants.map((v) => ({
+      name:   v.name,
+      images: v.images,
+      stock:  Object.fromEntries(SIZES.map((s) => [s, String(v.stock[s] ?? 0)])),
+    })),
     tags:         p.tags.join(", "),
     is_published: p.is_published,
   };
 }
 
 export default function EditProductSheet({ product, open, onOpenChange, onSaved }: Props) {
-  const [form, setForm] = useState<FormState | null>(null);
+  const [form, setForm]     = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]   = useState<string | null>(null);
 
   useEffect(() => {
     if (product) setForm(toForm(product));
     setError(null);
   }, [product]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -69,13 +75,35 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
     if (isNaN(price_sale) || price_sale <= 0) { setError("Precio de venta inválido."); return; }
     if (isNaN(price_cost) || price_cost <= 0) { setError("Precio de costo inválido."); return; }
 
-    const stock = Object.fromEntries(
-      SIZES.map((s) => [s, Math.max(0, parseInt(form.stock[s] ?? "0", 10) || 0)])
-    );
-    const tags = form.tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+
+    const hasVariants = form.colorVariants.length > 1;
+
+    // Flat stock: use first variant if multi-color, otherwise form.stock
+    const flatStock = hasVariants
+      ? Object.fromEntries(SIZES.map((s) => [s, parseInt(form.colorVariants[0].stock[s] ?? "0", 10) || 0]))
+      : Object.fromEntries(SIZES.map((s) => [s, Math.max(0, parseInt(form.stock[s] ?? "0", 10) || 0)]));
+
+    const body: Record<string, unknown> = {
+      name:         form.name.trim(),
+      description:  form.description.trim(),
+      category:     form.category,
+      price_sale,
+      price_cost,
+      stock:        flatStock,
+      tags,
+      is_published: form.is_published,
+    };
+
+    if (hasVariants) {
+      body.color_variants = form.colorVariants.map((v) => ({
+        name:   v.name,
+        images: v.images,
+        stock:  Object.fromEntries(
+          SIZES.map((s) => [s, Math.max(0, parseInt(v.stock[s] ?? "0", 10) || 0)])
+        ),
+      }));
+    }
 
     setSaving(true);
     setError(null);
@@ -83,16 +111,7 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
     const res = await fetch(`/api/admin/products/${product.id}`, {
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name:         form.name.trim(),
-        description:  form.description.trim(),
-        category:     form.category,
-        price_sale,
-        price_cost,
-        stock,
-        tags,
-        is_published: form.is_published,
-      }),
+      body:    JSON.stringify(body),
     });
 
     setSaving(false);
@@ -113,15 +132,15 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
     setForm((prev) => prev ? { ...prev, [key]: val } : prev);
   }
 
+  const isMultiColor = form.colorVariants.length > 1;
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/40"
         onClick={() => !saving && onOpenChange(false)}
       />
 
-      {/* Panel */}
       <div className="relative z-10 bg-card border-l border-border w-full max-w-lg flex flex-col shadow-xl overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
@@ -138,13 +157,11 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
         {/* Body */}
         <div className="flex-1 px-6 py-6 space-y-5 overflow-y-auto">
 
-          {/* Slug (readonly) */}
           <div>
             <label className="label-tag text-[10px] text-muted-foreground block mb-1">SLUG (solo lectura)</label>
             <p className="text-sm text-muted-foreground bg-muted px-3 py-2">{product?.slug}</p>
           </div>
 
-          {/* Nombre */}
           <div>
             <label className="label-tag text-[10px] text-muted-foreground block mb-1">NOMBRE *</label>
             <input
@@ -154,7 +171,6 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             />
           </div>
 
-          {/* Descripción */}
           <div>
             <label className="label-tag text-[10px] text-muted-foreground block mb-1">DESCRIPCIÓN</label>
             <textarea
@@ -165,7 +181,6 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             />
           </div>
 
-          {/* Categoría */}
           <div>
             <label className="label-tag text-[10px] text-muted-foreground block mb-1">CATEGORÍA *</label>
             <select
@@ -179,13 +194,11 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             </select>
           </div>
 
-          {/* Precios */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label-tag text-[10px] text-muted-foreground block mb-1">PRECIO VENTA *</label>
               <input
-                type="number"
-                min="0"
+                type="number" min="0"
                 value={form.price_sale}
                 onChange={(e) => setField("price_sale", e.target.value)}
                 className="w-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-green transition-colors"
@@ -194,8 +207,7 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             <div>
               <label className="label-tag text-[10px] text-muted-foreground block mb-1">PRECIO COSTO *</label>
               <input
-                type="number"
-                min="0"
+                type="number" min="0"
                 value={form.price_cost}
                 onChange={(e) => setField("price_cost", e.target.value)}
                 className="w-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-green transition-colors"
@@ -203,32 +215,67 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             </div>
           </div>
 
-          {/* Stock */}
-          <div>
-            <label className="label-tag text-[10px] text-muted-foreground block mb-2">STOCK POR TALLE</label>
-            <div className="grid grid-cols-3 gap-2">
-              {SIZES.map((size) => (
-                <div key={size}>
-                  <label className="label-tag text-[9px] text-muted-foreground block mb-1">{size}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.stock[size] ?? "0"}
-                    onChange={(e) =>
-                      setForm((prev) =>
-                        prev
-                          ? { ...prev, stock: { ...prev.stock, [size]: e.target.value } }
-                          : prev
-                      )
-                    }
-                    className="w-full border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-green transition-colors"
-                  />
-                </div>
-              ))}
+          {/* Stock — single color */}
+          {!isMultiColor && (
+            <div>
+              <label className="label-tag text-[10px] text-muted-foreground block mb-2">STOCK POR TALLE</label>
+              <div className="grid grid-cols-3 gap-2">
+                {SIZES.map((size) => (
+                  <div key={size}>
+                    <label className="label-tag text-[9px] text-muted-foreground block mb-1">{size}</label>
+                    <input
+                      type="number" min="0"
+                      value={form.stock[size] ?? "0"}
+                      onChange={(e) =>
+                        setForm((prev) =>
+                          prev ? { ...prev, stock: { ...prev.stock, [size]: e.target.value } } : prev
+                        )
+                      }
+                      className="w-full border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-green transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Tags */}
+          {/* Stock — multi color */}
+          {isMultiColor && (
+            <div>
+              <label className="label-tag text-[10px] text-muted-foreground block mb-3">STOCK POR COLOR Y TALLE</label>
+              <div className="flex flex-col gap-4">
+                {form.colorVariants.map((variant, vi) => (
+                  <div key={variant.name} className="border border-border p-3">
+                    <p className="label-tag text-[10px] text-brand-green mb-2">{variant.name.toUpperCase()}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {SIZES.map((size) => (
+                        <div key={size}>
+                          <label className="label-tag text-[9px] text-muted-foreground block mb-1">{size}</label>
+                          <input
+                            type="number" min="0"
+                            value={variant.stock[size] ?? "0"}
+                            onChange={(e) =>
+                              setForm((prev) => {
+                                if (!prev) return prev;
+                                const updated = prev.colorVariants.map((v, i) =>
+                                  i === vi
+                                    ? { ...v, stock: { ...v.stock, [size]: e.target.value } }
+                                    : v
+                                );
+                                return { ...prev, colorVariants: updated };
+                              })
+                            }
+                            className="w-full border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-green transition-colors"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="label-tag text-[10px] text-muted-foreground block mb-1">TAGS (separados por coma)</label>
             <input
@@ -239,7 +286,6 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             />
           </div>
 
-          {/* Publicado */}
           <div className="flex items-center justify-between py-2">
             <label className="label-tag text-[10px] text-muted-foreground">PUBLICADO</label>
             <button
@@ -258,10 +304,7 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             </button>
           </div>
 
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-valmont-error">{error}</p>
-          )}
+          {error && <p className="text-sm text-valmont-error">{error}</p>}
         </div>
 
         {/* Footer */}

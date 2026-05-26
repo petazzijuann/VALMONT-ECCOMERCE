@@ -10,22 +10,34 @@ const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL"];
 
 type BtnStatus = "idle" | "loading" | "done";
 
-export default function AddToCartSection({ product }: { product: ProductPublic }) {
-  const stock      = product.stock as StockMap;
-  const allSizes   = SIZE_ORDER.filter((s) => s in stock);
-  const firstAvail = allSizes.find((s) => (stock[s] ?? 0) > 0) ?? null;
+interface Props {
+  product: ProductPublic;
+  selectedColor: string | null;
+  onColorChange?: (color: string) => void;
+}
+
+export default function AddToCartSection({ product, selectedColor, onColorChange }: Props) {
+  const variants         = product.color_variants;
+  const hasMultipleColors = variants.length > 1;
+
+  const activeVariant = variants.find((v) => v.name === selectedColor);
+  const activeStock   = (activeVariant?.stock ?? product.stock) as StockMap;
+  const activeImage   = activeVariant?.images?.[0] ?? product.images[0] ?? "";
+
+  const allSizes   = SIZE_ORDER.filter((s) => s in activeStock);
+  const firstAvail = allSizes.find((s) => (activeStock[s] ?? 0) > 0) ?? null;
 
   const [selectedSize, setSelectedSize] = useState<string | null>(
-    allSizes.filter((s) => (stock[s] ?? 0) > 0).length === 1 ? firstAvail : null
+    allSizes.filter((s) => (activeStock[s] ?? 0) > 0).length === 1 ? firstAvail : null
   );
-  const [quantity, setQuantity]       = useState(1);
-  const [btnStatus, setBtnStatus]     = useState<BtnStatus>("idle");
-  const { addItem, openCart }         = useCartStore();
+  const [quantity, setQuantity]   = useState(1);
+  const [btnStatus, setBtnStatus] = useState<BtnStatus>("idle");
+  const { addItem, openCart }     = useCartStore();
 
-  const noStock = allSizes.every((s) => (stock[s] ?? 0) === 0);
+  const noStock = allSizes.every((s) => (activeStock[s] ?? 0) === 0);
 
   function handleSizeSelect(size: string) {
-    if ((stock[size] ?? 0) === 0) return;
+    if ((activeStock[size] ?? 0) === 0) return;
     setSelectedSize(size);
     setQuantity(1);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -44,8 +56,9 @@ export default function AddToCartSection({ product }: { product: ProductPublic }
         product_id: product.id,
         slug:       product.slug,
         name:       product.name,
-        image:      product.images[0] ?? "",
+        image:      activeImage,
         size:       selectedSize,
+        color:      hasMultipleColors ? selectedColor : null,
         price:      product.price_sale,
         quantity,
       });
@@ -67,6 +80,32 @@ export default function AddToCartSection({ product }: { product: ProductPublic }
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Selector de color */}
+      {hasMultipleColors && onColorChange && (
+        <div>
+          <p className="label-tag mb-3">COLOR: {selectedColor?.toUpperCase()}</p>
+          <div className="flex flex-wrap gap-2">
+            {variants.map((v) => {
+              const active = selectedColor === v.name;
+              return (
+                <button
+                  key={v.name}
+                  type="button"
+                  onClick={() => { onColorChange(v.name); setSelectedSize(null); setQuantity(1); }}
+                  className={`px-4 h-10 border label-tag text-sm transition-colors ${
+                    active
+                      ? "bg-brand-green text-brand-cream border-brand-green"
+                      : "border-border hover:border-brand-green hover:bg-brand-green/5"
+                  }`}
+                >
+                  {v.name.toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Selector de talle */}
       <div>
         <div className="flex items-center mb-3">
@@ -74,7 +113,7 @@ export default function AddToCartSection({ product }: { product: ProductPublic }
         </div>
         <div className="flex flex-wrap gap-2">
           {allSizes.map((size) => {
-            const qty       = stock[size] ?? 0;
+            const qty       = activeStock[size] ?? 0;
             const available = qty > 0;
             const active    = selectedSize === size;
             return (
@@ -92,7 +131,6 @@ export default function AddToCartSection({ product }: { product: ProductPublic }
                 }`}
               >
                 {size}
-                {/* diagonal line for out-of-stock */}
                 {!available && (
                   <span
                     className="absolute inset-0 pointer-events-none"
@@ -126,7 +164,7 @@ export default function AddToCartSection({ product }: { product: ProductPublic }
             </span>
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.min(stock[selectedSize] ?? 1, q + 1))}
+              onClick={() => setQuantity((q) => Math.min(activeStock[selectedSize] ?? 1, q + 1))}
               className="px-4 py-2 text-sm hover:bg-muted transition-colors"
               aria-label="Sumar cantidad"
             >
@@ -147,7 +185,6 @@ export default function AddToCartSection({ product }: { product: ProductPublic }
             : "bg-brand-green text-brand-cream"
         }`}
       >
-        {/* hover fill — solo cuando idle y habilitado */}
         {isIdle && selectedSize && (
           <span className="absolute inset-0 bg-brand-cream -translate-x-full group-hover:translate-x-0 transition-transform duration-100 ease-in-out" aria-hidden />
         )}

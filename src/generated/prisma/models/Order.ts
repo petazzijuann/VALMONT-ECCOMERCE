@@ -28,10 +28,12 @@ export type AggregateOrder = {
 
 export type OrderAvgAggregateOutputType = {
   total_amount: runtime.Decimal | null
+  shipping_cost: runtime.Decimal | null
 }
 
 export type OrderSumAggregateOutputType = {
   total_amount: runtime.Decimal | null
+  shipping_cost: runtime.Decimal | null
 }
 
 export type OrderMinAggregateOutputType = {
@@ -44,6 +46,12 @@ export type OrderMinAggregateOutputType = {
   payment_method: string | null
   payment_proof_url: string | null
   astropay_payment_id: string | null
+  shipping_method: string | null
+  shipping_cost: runtime.Decimal | null
+  shipping_cp: string | null
+  shipping_days_label: string | null
+  andreani_tracking_id: string | null
+  andreani_order_id: string | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -58,6 +66,12 @@ export type OrderMaxAggregateOutputType = {
   payment_method: string | null
   payment_proof_url: string | null
   astropay_payment_id: string | null
+  shipping_method: string | null
+  shipping_cost: runtime.Decimal | null
+  shipping_cp: string | null
+  shipping_days_label: string | null
+  andreani_tracking_id: string | null
+  andreani_order_id: string | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -74,6 +88,12 @@ export type OrderCountAggregateOutputType = {
   payment_method: number
   payment_proof_url: number
   astropay_payment_id: number
+  shipping_method: number
+  shipping_cost: number
+  shipping_cp: number
+  shipping_days_label: number
+  andreani_tracking_id: number
+  andreani_order_id: number
   created_at: number
   updated_at: number
   _all: number
@@ -82,10 +102,12 @@ export type OrderCountAggregateOutputType = {
 
 export type OrderAvgAggregateInputType = {
   total_amount?: true
+  shipping_cost?: true
 }
 
 export type OrderSumAggregateInputType = {
   total_amount?: true
+  shipping_cost?: true
 }
 
 export type OrderMinAggregateInputType = {
@@ -98,6 +120,12 @@ export type OrderMinAggregateInputType = {
   payment_method?: true
   payment_proof_url?: true
   astropay_payment_id?: true
+  shipping_method?: true
+  shipping_cost?: true
+  shipping_cp?: true
+  shipping_days_label?: true
+  andreani_tracking_id?: true
+  andreani_order_id?: true
   created_at?: true
   updated_at?: true
 }
@@ -112,6 +140,12 @@ export type OrderMaxAggregateInputType = {
   payment_method?: true
   payment_proof_url?: true
   astropay_payment_id?: true
+  shipping_method?: true
+  shipping_cost?: true
+  shipping_cp?: true
+  shipping_days_label?: true
+  andreani_tracking_id?: true
+  andreani_order_id?: true
   created_at?: true
   updated_at?: true
 }
@@ -128,6 +162,12 @@ export type OrderCountAggregateInputType = {
   payment_method?: true
   payment_proof_url?: true
   astropay_payment_id?: true
+  shipping_method?: true
+  shipping_cost?: true
+  shipping_cp?: true
+  shipping_days_label?: true
+  andreani_tracking_id?: true
+  andreani_order_id?: true
   created_at?: true
   updated_at?: true
   _all?: true
@@ -231,6 +271,12 @@ export type OrderGroupByOutputType = {
   payment_method: string
   payment_proof_url: string | null
   astropay_payment_id: string | null
+  shipping_method: string | null
+  shipping_cost: runtime.Decimal | null
+  shipping_cp: string | null
+  shipping_days_label: string | null
+  andreani_tracking_id: string | null
+  andreani_order_id: string | null
   created_at: Date
   updated_at: Date
   _count: OrderCountAggregateOutputType | null
@@ -270,6 +316,12 @@ export type OrderWhereInput = {
   payment_method?: Prisma.StringFilter<"Order"> | string
   payment_proof_url?: Prisma.StringNullableFilter<"Order"> | string | null
   astropay_payment_id?: Prisma.StringNullableFilter<"Order"> | string | null
+  shipping_method?: Prisma.StringNullableFilter<"Order"> | string | null
+  shipping_cost?: Prisma.DecimalNullableFilter<"Order"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.StringNullableFilter<"Order"> | string | null
+  shipping_days_label?: Prisma.StringNullableFilter<"Order"> | string | null
+  andreani_tracking_id?: Prisma.StringNullableFilter<"Order"> | string | null
+  andreani_order_id?: Prisma.StringNullableFilter<"Order"> | string | null
   created_at?: Prisma.DateTimeFilter<"Order"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"Order"> | Date | string
   sales?: Prisma.SaleListRelationFilter
@@ -287,6 +339,12 @@ export type OrderOrderByWithRelationInput = {
   payment_method?: Prisma.SortOrder
   payment_proof_url?: Prisma.SortOrderInput | Prisma.SortOrder
   astropay_payment_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_method?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_cost?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_cp?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_days_label?: Prisma.SortOrderInput | Prisma.SortOrder
+  andreani_tracking_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  andreani_order_id?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   sales?: Prisma.SaleOrderByRelationAggregateInput
@@ -307,6 +365,12 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   payment_method?: Prisma.StringFilter<"Order"> | string
   payment_proof_url?: Prisma.StringNullableFilter<"Order"> | string | null
   astropay_payment_id?: Prisma.StringNullableFilter<"Order"> | string | null
+  shipping_method?: Prisma.StringNullableFilter<"Order"> | string | null
+  shipping_cost?: Prisma.DecimalNullableFilter<"Order"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.StringNullableFilter<"Order"> | string | null
+  shipping_days_label?: Prisma.StringNullableFilter<"Order"> | string | null
+  andreani_tracking_id?: Prisma.StringNullableFilter<"Order"> | string | null
+  andreani_order_id?: Prisma.StringNullableFilter<"Order"> | string | null
   created_at?: Prisma.DateTimeFilter<"Order"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"Order"> | Date | string
   sales?: Prisma.SaleListRelationFilter
@@ -324,6 +388,12 @@ export type OrderOrderByWithAggregationInput = {
   payment_method?: Prisma.SortOrder
   payment_proof_url?: Prisma.SortOrderInput | Prisma.SortOrder
   astropay_payment_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_method?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_cost?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_cp?: Prisma.SortOrderInput | Prisma.SortOrder
+  shipping_days_label?: Prisma.SortOrderInput | Prisma.SortOrder
+  andreani_tracking_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  andreani_order_id?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.OrderCountOrderByAggregateInput
@@ -348,6 +418,12 @@ export type OrderScalarWhereWithAggregatesInput = {
   payment_method?: Prisma.StringWithAggregatesFilter<"Order"> | string
   payment_proof_url?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   astropay_payment_id?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  shipping_method?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  shipping_cost?: Prisma.DecimalNullableWithAggregatesFilter<"Order"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  shipping_days_label?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  andreani_tracking_id?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
+  andreani_order_id?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"Order"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"Order"> | Date | string
 }
@@ -364,6 +440,12 @@ export type OrderCreateInput = {
   payment_method: string
   payment_proof_url?: string | null
   astropay_payment_id?: string | null
+  shipping_method?: string | null
+  shipping_cost?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: string | null
+  shipping_days_label?: string | null
+  andreani_tracking_id?: string | null
+  andreani_order_id?: string | null
   created_at?: Date | string
   updated_at?: Date | string
   sales?: Prisma.SaleCreateNestedManyWithoutOrderInput
@@ -381,6 +463,12 @@ export type OrderUncheckedCreateInput = {
   payment_method: string
   payment_proof_url?: string | null
   astropay_payment_id?: string | null
+  shipping_method?: string | null
+  shipping_cost?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: string | null
+  shipping_days_label?: string | null
+  andreani_tracking_id?: string | null
+  andreani_order_id?: string | null
   created_at?: Date | string
   updated_at?: Date | string
   sales?: Prisma.SaleUncheckedCreateNestedManyWithoutOrderInput
@@ -398,6 +486,12 @@ export type OrderUpdateInput = {
   payment_method?: Prisma.StringFieldUpdateOperationsInput | string
   payment_proof_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   astropay_payment_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_cost?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_days_label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_tracking_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sales?: Prisma.SaleUpdateManyWithoutOrderNestedInput
@@ -415,6 +509,12 @@ export type OrderUncheckedUpdateInput = {
   payment_method?: Prisma.StringFieldUpdateOperationsInput | string
   payment_proof_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   astropay_payment_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_cost?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_days_label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_tracking_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sales?: Prisma.SaleUncheckedUpdateManyWithoutOrderNestedInput
@@ -432,6 +532,12 @@ export type OrderCreateManyInput = {
   payment_method: string
   payment_proof_url?: string | null
   astropay_payment_id?: string | null
+  shipping_method?: string | null
+  shipping_cost?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: string | null
+  shipping_days_label?: string | null
+  andreani_tracking_id?: string | null
+  andreani_order_id?: string | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -448,6 +554,12 @@ export type OrderUpdateManyMutationInput = {
   payment_method?: Prisma.StringFieldUpdateOperationsInput | string
   payment_proof_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   astropay_payment_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_cost?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_days_label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_tracking_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -464,6 +576,12 @@ export type OrderUncheckedUpdateManyInput = {
   payment_method?: Prisma.StringFieldUpdateOperationsInput | string
   payment_proof_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   astropay_payment_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_cost?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_days_label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_tracking_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -485,12 +603,19 @@ export type OrderCountOrderByAggregateInput = {
   payment_method?: Prisma.SortOrder
   payment_proof_url?: Prisma.SortOrder
   astropay_payment_id?: Prisma.SortOrder
+  shipping_method?: Prisma.SortOrder
+  shipping_cost?: Prisma.SortOrder
+  shipping_cp?: Prisma.SortOrder
+  shipping_days_label?: Prisma.SortOrder
+  andreani_tracking_id?: Prisma.SortOrder
+  andreani_order_id?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type OrderAvgOrderByAggregateInput = {
   total_amount?: Prisma.SortOrder
+  shipping_cost?: Prisma.SortOrder
 }
 
 export type OrderMaxOrderByAggregateInput = {
@@ -503,6 +628,12 @@ export type OrderMaxOrderByAggregateInput = {
   payment_method?: Prisma.SortOrder
   payment_proof_url?: Prisma.SortOrder
   astropay_payment_id?: Prisma.SortOrder
+  shipping_method?: Prisma.SortOrder
+  shipping_cost?: Prisma.SortOrder
+  shipping_cp?: Prisma.SortOrder
+  shipping_days_label?: Prisma.SortOrder
+  andreani_tracking_id?: Prisma.SortOrder
+  andreani_order_id?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -517,12 +648,19 @@ export type OrderMinOrderByAggregateInput = {
   payment_method?: Prisma.SortOrder
   payment_proof_url?: Prisma.SortOrder
   astropay_payment_id?: Prisma.SortOrder
+  shipping_method?: Prisma.SortOrder
+  shipping_cost?: Prisma.SortOrder
+  shipping_cp?: Prisma.SortOrder
+  shipping_days_label?: Prisma.SortOrder
+  andreani_tracking_id?: Prisma.SortOrder
+  andreani_order_id?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type OrderSumOrderByAggregateInput = {
   total_amount?: Prisma.SortOrder
+  shipping_cost?: Prisma.SortOrder
 }
 
 export type OrderCreateNestedOneWithoutSalesInput = {
@@ -541,6 +679,14 @@ export type OrderUpdateOneWithoutSalesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrderUpdateToOneWithWhereWithoutSalesInput, Prisma.OrderUpdateWithoutSalesInput>, Prisma.OrderUncheckedUpdateWithoutSalesInput>
 }
 
+export type NullableDecimalFieldUpdateOperationsInput = {
+  set?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
+}
+
 export type OrderCreateWithoutSalesInput = {
   id?: string
   customer_name: string
@@ -553,6 +699,12 @@ export type OrderCreateWithoutSalesInput = {
   payment_method: string
   payment_proof_url?: string | null
   astropay_payment_id?: string | null
+  shipping_method?: string | null
+  shipping_cost?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: string | null
+  shipping_days_label?: string | null
+  andreani_tracking_id?: string | null
+  andreani_order_id?: string | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -569,6 +721,12 @@ export type OrderUncheckedCreateWithoutSalesInput = {
   payment_method: string
   payment_proof_url?: string | null
   astropay_payment_id?: string | null
+  shipping_method?: string | null
+  shipping_cost?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: string | null
+  shipping_days_label?: string | null
+  andreani_tracking_id?: string | null
+  andreani_order_id?: string | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -601,6 +759,12 @@ export type OrderUpdateWithoutSalesInput = {
   payment_method?: Prisma.StringFieldUpdateOperationsInput | string
   payment_proof_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   astropay_payment_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_cost?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_days_label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_tracking_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -617,6 +781,12 @@ export type OrderUncheckedUpdateWithoutSalesInput = {
   payment_method?: Prisma.StringFieldUpdateOperationsInput | string
   payment_proof_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   astropay_payment_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_cost?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  shipping_cp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shipping_days_label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_tracking_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  andreani_order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -664,6 +834,12 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   payment_method?: boolean
   payment_proof_url?: boolean
   astropay_payment_id?: boolean
+  shipping_method?: boolean
+  shipping_cost?: boolean
+  shipping_cp?: boolean
+  shipping_days_label?: boolean
+  andreani_tracking_id?: boolean
+  andreani_order_id?: boolean
   created_at?: boolean
   updated_at?: boolean
   sales?: boolean | Prisma.Order$salesArgs<ExtArgs>
@@ -682,6 +858,12 @@ export type OrderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   payment_method?: boolean
   payment_proof_url?: boolean
   astropay_payment_id?: boolean
+  shipping_method?: boolean
+  shipping_cost?: boolean
+  shipping_cp?: boolean
+  shipping_days_label?: boolean
+  andreani_tracking_id?: boolean
+  andreani_order_id?: boolean
   created_at?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["order"]>
@@ -698,6 +880,12 @@ export type OrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   payment_method?: boolean
   payment_proof_url?: boolean
   astropay_payment_id?: boolean
+  shipping_method?: boolean
+  shipping_cost?: boolean
+  shipping_cp?: boolean
+  shipping_days_label?: boolean
+  andreani_tracking_id?: boolean
+  andreani_order_id?: boolean
   created_at?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["order"]>
@@ -714,11 +902,17 @@ export type OrderSelectScalar = {
   payment_method?: boolean
   payment_proof_url?: boolean
   astropay_payment_id?: boolean
+  shipping_method?: boolean
+  shipping_cost?: boolean
+  shipping_cp?: boolean
+  shipping_days_label?: boolean
+  andreani_tracking_id?: boolean
+  andreani_order_id?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "customer_name" | "customer_email" | "customer_phone" | "customer_address" | "items" | "total_amount" | "status" | "payment_method" | "payment_proof_url" | "astropay_payment_id" | "created_at" | "updated_at", ExtArgs["result"]["order"]>
+export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "customer_name" | "customer_email" | "customer_phone" | "customer_address" | "items" | "total_amount" | "status" | "payment_method" | "payment_proof_url" | "astropay_payment_id" | "shipping_method" | "shipping_cost" | "shipping_cp" | "shipping_days_label" | "andreani_tracking_id" | "andreani_order_id" | "created_at" | "updated_at", ExtArgs["result"]["order"]>
 export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sales?: boolean | Prisma.Order$salesArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
@@ -743,6 +937,12 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     payment_method: string
     payment_proof_url: string | null
     astropay_payment_id: string | null
+    shipping_method: string | null
+    shipping_cost: runtime.Decimal | null
+    shipping_cp: string | null
+    shipping_days_label: string | null
+    andreani_tracking_id: string | null
+    andreani_order_id: string | null
     created_at: Date
     updated_at: Date
   }, ExtArgs["result"]["order"]>
@@ -1180,6 +1380,12 @@ export interface OrderFieldRefs {
   readonly payment_method: Prisma.FieldRef<"Order", 'String'>
   readonly payment_proof_url: Prisma.FieldRef<"Order", 'String'>
   readonly astropay_payment_id: Prisma.FieldRef<"Order", 'String'>
+  readonly shipping_method: Prisma.FieldRef<"Order", 'String'>
+  readonly shipping_cost: Prisma.FieldRef<"Order", 'Decimal'>
+  readonly shipping_cp: Prisma.FieldRef<"Order", 'String'>
+  readonly shipping_days_label: Prisma.FieldRef<"Order", 'String'>
+  readonly andreani_tracking_id: Prisma.FieldRef<"Order", 'String'>
+  readonly andreani_order_id: Prisma.FieldRef<"Order", 'String'>
   readonly created_at: Prisma.FieldRef<"Order", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"Order", 'DateTime'>
 }

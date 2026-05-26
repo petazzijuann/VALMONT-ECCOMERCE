@@ -33,6 +33,16 @@ export type Sale = Prisma.SaleModel
  */
 export type Order = Prisma.OrderModel
 /**
+ * Model ContactMessage
+ * 
+ */
+export type ContactMessage = Prisma.ContactMessageModel
+/**
+ * Model Subscriber
+ * 
+ */
+export type Subscriber = Prisma.SubscriberModel
+/**
  * Model TelegramSession
  * 
  */

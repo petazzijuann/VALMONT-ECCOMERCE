@@ -54,6 +54,8 @@ export const ModelName = {
   Product: 'Product',
   Sale: 'Sale',
   Order: 'Order',
+  ContactMessage: 'ContactMessage',
+  Subscriber: 'Subscriber',
   TelegramSession: 'TelegramSession'
 } as const
 
@@ -84,6 +86,7 @@ export const ProductScalarFieldEnum = {
   price_sale: 'price_sale',
   price_cost: 'price_cost',
   stock: 'stock',
+  color_variants: 'color_variants',
   is_published: 'is_published',
   instagram_posted: 'instagram_posted',
   created_at: 'created_at',
@@ -123,11 +126,38 @@ export const OrderScalarFieldEnum = {
   payment_method: 'payment_method',
   payment_proof_url: 'payment_proof_url',
   astropay_payment_id: 'astropay_payment_id',
+  shipping_method: 'shipping_method',
+  shipping_cost: 'shipping_cost',
+  shipping_cp: 'shipping_cp',
+  shipping_days_label: 'shipping_days_label',
+  andreani_tracking_id: 'andreani_tracking_id',
+  andreani_order_id: 'andreani_order_id',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
 
 export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
+
+
+export const ContactMessageScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  email: 'email',
+  asunto: 'asunto',
+  mensaje: 'mensaje',
+  created_at: 'created_at'
+} as const
+
+export type ContactMessageScalarFieldEnum = (typeof ContactMessageScalarFieldEnum)[keyof typeof ContactMessageScalarFieldEnum]
+
+
+export const SubscriberScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  created_at: 'created_at'
+} as const
+
+export type SubscriberScalarFieldEnum = (typeof SubscriberScalarFieldEnum)[keyof typeof SubscriberScalarFieldEnum]
 
 
 export const TelegramSessionScalarFieldEnum = {

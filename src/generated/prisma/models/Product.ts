@@ -75,6 +75,7 @@ export type ProductCountAggregateOutputType = {
   price_sale: number
   price_cost: number
   stock: number
+  color_variants: number
   is_published: number
   instagram_posted: number
   created_at: number
@@ -132,6 +133,7 @@ export type ProductCountAggregateInputType = {
   price_sale?: true
   price_cost?: true
   stock?: true
+  color_variants?: true
   is_published?: true
   instagram_posted?: true
   created_at?: true
@@ -236,6 +238,7 @@ export type ProductGroupByOutputType = {
   price_sale: runtime.Decimal
   price_cost: runtime.Decimal
   stock: runtime.JsonValue
+  color_variants: runtime.JsonValue
   is_published: boolean
   instagram_posted: boolean
   created_at: Date
@@ -276,6 +279,7 @@ export type ProductWhereInput = {
   price_sale?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonFilter<"Product">
+  color_variants?: Prisma.JsonFilter<"Product">
   is_published?: Prisma.BoolFilter<"Product"> | boolean
   instagram_posted?: Prisma.BoolFilter<"Product"> | boolean
   created_at?: Prisma.DateTimeFilter<"Product"> | Date | string
@@ -294,6 +298,7 @@ export type ProductOrderByWithRelationInput = {
   price_sale?: Prisma.SortOrder
   price_cost?: Prisma.SortOrder
   stock?: Prisma.SortOrder
+  color_variants?: Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -315,6 +320,7 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   price_sale?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonFilter<"Product">
+  color_variants?: Prisma.JsonFilter<"Product">
   is_published?: Prisma.BoolFilter<"Product"> | boolean
   instagram_posted?: Prisma.BoolFilter<"Product"> | boolean
   created_at?: Prisma.DateTimeFilter<"Product"> | Date | string
@@ -333,6 +339,7 @@ export type ProductOrderByWithAggregationInput = {
   price_sale?: Prisma.SortOrder
   price_cost?: Prisma.SortOrder
   stock?: Prisma.SortOrder
+  color_variants?: Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -358,6 +365,7 @@ export type ProductScalarWhereWithAggregatesInput = {
   price_sale?: Prisma.DecimalWithAggregatesFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalWithAggregatesFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonWithAggregatesFilter<"Product">
+  color_variants?: Prisma.JsonWithAggregatesFilter<"Product">
   is_published?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   instagram_posted?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   created_at?: Prisma.DateTimeWithAggregatesFilter<"Product"> | Date | string
@@ -375,6 +383,7 @@ export type ProductCreateInput = {
   price_sale: runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -393,6 +402,7 @@ export type ProductUncheckedCreateInput = {
   price_sale: runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -411,6 +421,7 @@ export type ProductUpdateInput = {
   price_sale?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -429,6 +440,7 @@ export type ProductUncheckedUpdateInput = {
   price_sale?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -447,6 +459,7 @@ export type ProductCreateManyInput = {
   price_sale: runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -464,6 +477,7 @@ export type ProductUpdateManyMutationInput = {
   price_sale?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -481,6 +495,7 @@ export type ProductUncheckedUpdateManyInput = {
   price_sale?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -506,6 +521,7 @@ export type ProductCountOrderByAggregateInput = {
   price_sale?: Prisma.SortOrder
   price_cost?: Prisma.SortOrder
   stock?: Prisma.SortOrder
+  color_variants?: Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -618,6 +634,7 @@ export type ProductCreateWithoutSalesInput = {
   price_sale: runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -635,6 +652,7 @@ export type ProductUncheckedCreateWithoutSalesInput = {
   price_sale: runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -668,6 +686,7 @@ export type ProductUpdateWithoutSalesInput = {
   price_sale?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -685,6 +704,7 @@ export type ProductUncheckedUpdateWithoutSalesInput = {
   price_sale?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -733,6 +753,7 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   price_sale?: boolean
   price_cost?: boolean
   stock?: boolean
+  color_variants?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
@@ -752,6 +773,7 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   price_sale?: boolean
   price_cost?: boolean
   stock?: boolean
+  color_variants?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
@@ -769,6 +791,7 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   price_sale?: boolean
   price_cost?: boolean
   stock?: boolean
+  color_variants?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
@@ -786,13 +809,14 @@ export type ProductSelectScalar = {
   price_sale?: boolean
   price_cost?: boolean
   stock?: boolean
+  color_variants?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "description" | "category" | "images" | "tags" | "price_sale" | "price_cost" | "stock" | "is_published" | "instagram_posted" | "created_at" | "updated_at", ExtArgs["result"]["product"]>
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "description" | "category" | "images" | "tags" | "price_sale" | "price_cost" | "stock" | "color_variants" | "is_published" | "instagram_posted" | "created_at" | "updated_at", ExtArgs["result"]["product"]>
 export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sales?: boolean | Prisma.Product$salesArgs<ExtArgs>
   _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -816,6 +840,7 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     price_sale: runtime.Decimal
     price_cost: runtime.Decimal
     stock: runtime.JsonValue
+    color_variants: runtime.JsonValue
     is_published: boolean
     instagram_posted: boolean
     created_at: Date
@@ -1254,6 +1279,7 @@ export interface ProductFieldRefs {
   readonly price_sale: Prisma.FieldRef<"Product", 'Decimal'>
   readonly price_cost: Prisma.FieldRef<"Product", 'Decimal'>
   readonly stock: Prisma.FieldRef<"Product", 'Json'>
+  readonly color_variants: Prisma.FieldRef<"Product", 'Json'>
   readonly is_published: Prisma.FieldRef<"Product", 'Boolean'>
   readonly instagram_posted: Prisma.FieldRef<"Product", 'Boolean'>
   readonly created_at: Prisma.FieldRef<"Product", 'DateTime'>
