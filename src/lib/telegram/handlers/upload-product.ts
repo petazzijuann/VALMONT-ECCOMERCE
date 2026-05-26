@@ -149,16 +149,19 @@ export async function handleText(ctx: Context) {
     }
 
     case "upload_waiting_color_name": {
+      const isFirstColor = (session.uploadData?.color_variants ?? []).length === 0;
       await setSession(chatId, {
         ...session,
         state: "upload_waiting_color_photos",
         uploadData: {
           ...session.uploadData,
           current_color:  text,
-          current_photos: session.uploadData?.photo_url ? [session.uploadData.photo_url] : [],
+          current_photos: isFirstColor && session.uploadData?.photo_url
+            ? [session.uploadData.photo_url]
+            : [],
         },
       });
-      const initial = session.uploadData?.photo_url
+      const initial = isFirstColor && session.uploadData?.photo_url
         ? "Ya tengo 1 foto (la inicial). Enviá más o escribí *LISTO*."
         : `Enviá las fotos para *${text}*. Cuando termines escribí *LISTO*.`;
       await ctx.reply(initial, { parse_mode: "Markdown" });
