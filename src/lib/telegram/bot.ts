@@ -14,6 +14,12 @@ import {
   handleAddColorPhoto,
   handleAddColorCallback,
 } from "./handlers/add-color";
+import {
+  handleAddFotos,
+  handleAddFotosText,
+  handleAddFotosPhoto,
+  handleAddFotosCallback,
+} from "./handlers/add-fotos";
 
 const globalForBot = globalThis as unknown as { telegramBot: Telegraf };
 
@@ -34,6 +40,7 @@ bot.use(async (ctx, next) => {
 // ── Commands ─────────────────────────────────────────────────
 bot.command("nuevo",    handleNuevo);
 bot.command("addcolor", handleAddColor);
+bot.command("addfotos", handleAddFotos);
 bot.command("venta",    handleVenta);
 bot.command("metricas", handleMetricas);
 bot.command("stock",    handleStock);
@@ -42,6 +49,7 @@ bot.command("ayuda", async (ctx) => {
     "*Comandos disponibles:*\n\n" +
     "/nuevo — Cargar nuevo producto\n" +
     "/addcolor — Agregar color a producto existente\n" +
+    "/addfotos — Agregar fotos a un color existente\n" +
     "/venta — Registrar venta offline\n" +
     "/metricas — Ver ventas y márgenes\n" +
     "/stock — Ver stock actual\n" +
@@ -55,9 +63,8 @@ bot.on("photo", async (ctx) => {
   const chatId  = ctx.from!.id.toString();
   const session = await getSession(chatId);
 
-  if (session.state === "addcolor_waiting_photos") {
-    return handleAddColorPhoto(ctx);
-  }
+  if (session.state === "addcolor_waiting_photos") return handleAddColorPhoto(ctx);
+  if (session.state === "addfotos_waiting_photos")  return handleAddFotosPhoto(ctx);
   return handleUploadPhoto(ctx);
 });
 
@@ -66,9 +73,10 @@ bot.on("text", async (ctx) => {
   const chatId  = ctx.from!.id.toString();
   const session = await getSession(chatId);
 
-  if (session.state.startsWith("upload_")) return handleUploadText(ctx);
-  if (session.state.startsWith("sale_"))   return handleSaleText(ctx);
+  if (session.state.startsWith("upload_"))   return handleUploadText(ctx);
+  if (session.state.startsWith("sale_"))     return handleSaleText(ctx);
   if (session.state.startsWith("addcolor_")) return handleAddColorText(ctx);
+  if (session.state.startsWith("addfotos_")) return handleAddFotosText(ctx);
 });
 
 // ── Callbacks: dispatch by data prefix ───────────────────────
@@ -88,6 +96,13 @@ bot.on("callback_query", async (ctx) => {
     data.startsWith("addcolor:")
   ) {
     return handleAddColorCallback(ctx);
+  }
+  if (
+    data.startsWith("addfotos_prod:") ||
+    data.startsWith("addfotos_color:") ||
+    data.startsWith("addfotos:")
+  ) {
+    return handleAddFotosCallback(ctx);
   }
   if (
     data.startsWith("product:") ||

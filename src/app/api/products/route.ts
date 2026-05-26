@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       updated_at: p.updated_at.toISOString(),
     }))
     .filter((p) => {
-      const variants = (p.color_variants ?? []) as ColorVariant[];
+      const variants = (p.color_variants ?? []) as unknown as ColorVariant[];
       if (variants.length > 0) {
         return variants.some((v) => Object.values(v.stock).some((q) => q > 0));
       }

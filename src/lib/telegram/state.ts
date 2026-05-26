@@ -28,7 +28,12 @@ export type BotState =
   | "addcolor_waiting_name"
   | "addcolor_waiting_photos"
   | "addcolor_waiting_stock"
-  | "addcolor_confirming";
+  | "addcolor_confirming"
+  | "addfotos_waiting_search"
+  | "addfotos_waiting_product_choice"
+  | "addfotos_waiting_color_choice"
+  | "addfotos_waiting_photos"
+  | "addfotos_confirming";
 
 export interface UploadData {
   photo_urls?:     string[];
@@ -65,11 +70,20 @@ export interface SaleData {
   payment_method?:  string;
 }
 
+export interface AddFotosData {
+  product_id?:     string;
+  product_name?:   string;
+  color_name?:     string;
+  new_photos?:     string[];
+  existing_count?: number;
+}
+
 export interface BotSessionData {
-  state:         BotState;
-  uploadData?:   UploadData;
-  addColorData?: AddColorData;
-  saleData?:     SaleData;
+  state:          BotState;
+  uploadData?:    UploadData;
+  addColorData?:  AddColorData;
+  addFotosData?:  AddFotosData;
+  saleData?:      SaleData;
 }
 
 export async function getSession(chatId: string): Promise<BotSessionData> {
