@@ -6,7 +6,12 @@ import { gsap } from "@/lib/gsap";
 import { useCartStore } from "@/store/cart";
 import type { ProductPublic, StockMap } from "@/types";
 
-const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL"];
+const SIZE_ORDER_LETTERS = ["XS", "S", "M", "L", "XL", "XXL", "UNICO"];
+const SIZE_ORDER_PANTS   = ["36", "38", "40", "42", "44", "46"];
+
+function getSizeOrder(category: string) {
+  return category === "pantalones" ? SIZE_ORDER_PANTS : SIZE_ORDER_LETTERS;
+}
 
 type BtnStatus = "idle" | "loading" | "done";
 
@@ -24,7 +29,8 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
   const activeStock   = (activeVariant?.stock ?? product.stock) as StockMap;
   const activeImage   = activeVariant?.images?.[0] ?? product.images[0] ?? "";
 
-  const allSizes   = SIZE_ORDER.filter((s) => s in activeStock);
+  const sizeOrder = getSizeOrder(product.category);
+  const allSizes  = sizeOrder.filter((s) => s in activeStock);
   const firstAvail = allSizes.find((s) => (activeStock[s] ?? 0) > 0) ?? null;
 
   const [selectedSize, setSelectedSize] = useState<string | null>(
@@ -122,7 +128,7 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
                 id={`size-btn-${product.id}-${size}`}
                 onClick={() => handleSizeSelect(size)}
                 disabled={!available}
-                className={`relative w-12 h-12 border label-tag text-sm transition-colors overflow-hidden ${
+                className={`relative min-w-[3rem] px-3 h-12 border label-tag text-sm transition-colors overflow-hidden ${
                   active
                     ? "bg-brand-green text-brand-cream border-brand-green"
                     : available

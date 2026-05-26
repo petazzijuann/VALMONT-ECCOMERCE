@@ -4,8 +4,13 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import type { ProductAdmin, StockMap, ColorVariant } from "@/types";
 
-const SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-const CATEGORIES = ["remeras", "pantalones", "buzos", "accesorios", "calzado"] as const;
+const SIZES_LETTERS = ["XS", "S", "M", "L", "XL", "XXL", "UNICO"] as const;
+const SIZES_PANTS   = ["36", "38", "40", "42", "44", "46"] as const;
+const CATEGORIES    = ["remeras", "pantalones", "buzos", "accesorios", "calzado"] as const;
+
+function getSizes(category: string): readonly string[] {
+  return category === "pantalones" ? SIZES_PANTS : SIZES_LETTERS;
+}
 
 interface Props {
   product: ProductAdmin | null;
@@ -27,19 +32,20 @@ interface FormState {
 }
 
 function toForm(p: ProductAdmin): FormState {
-  const stock = p.stock as StockMap;
+  const stock    = p.stock as StockMap;
   const variants = (p.color_variants ?? []) as ColorVariant[];
+  const sizes    = getSizes(p.category);
   return {
     name:         p.name,
     description:  p.description ?? "",
     category:     p.category,
     price_sale:   String(p.price_sale),
     price_cost:   String(p.price_cost),
-    stock:        Object.fromEntries(SIZES.map((s) => [s, String(stock[s] ?? 0)])),
+    stock:        Object.fromEntries(sizes.map((s) => [s, String(stock[s] ?? 0)])),
     colorVariants: variants.map((v) => ({
       name:   v.name,
       images: v.images,
-      stock:  Object.fromEntries(SIZES.map((s) => [s, String(v.stock[s] ?? 0)])),
+      stock:  Object.fromEntries(sizes.map((s) => [s, String(v.stock[s] ?? 0)])),
     })),
     tags:         p.tags.join(", "),
     is_published: p.is_published,
@@ -78,11 +84,12 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
     const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
 
     const hasVariants = form.colorVariants.length > 1;
+    const sizes       = getSizes(form.category);
 
     // Flat stock: use first variant if multi-color, otherwise form.stock
     const flatStock = hasVariants
-      ? Object.fromEntries(SIZES.map((s) => [s, parseInt(form.colorVariants[0].stock[s] ?? "0", 10) || 0]))
-      : Object.fromEntries(SIZES.map((s) => [s, Math.max(0, parseInt(form.stock[s] ?? "0", 10) || 0)]));
+      ? Object.fromEntries(sizes.map((s) => [s, parseInt(form.colorVariants[0].stock[s] ?? "0", 10) || 0]))
+      : Object.fromEntries(sizes.map((s) => [s, Math.max(0, parseInt(form.stock[s] ?? "0", 10) || 0)]));
 
     const body: Record<string, unknown> = {
       name:         form.name.trim(),
@@ -100,7 +107,7 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
         name:   v.name,
         images: v.images,
         stock:  Object.fromEntries(
-          SIZES.map((s) => [s, Math.max(0, parseInt(v.stock[s] ?? "0", 10) || 0)])
+          sizes.map((s) => [s, Math.max(0, parseInt(v.stock[s] ?? "0", 10) || 0)])
         ),
       }));
     }
@@ -133,6 +140,7 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
   }
 
   const isMultiColor = form.colorVariants.length > 1;
+  const activeSizes  = getSizes(form.category);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -220,7 +228,7 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
             <div>
               <label className="label-tag text-[10px] text-muted-foreground block mb-2">STOCK POR TALLE</label>
               <div className="grid grid-cols-3 gap-2">
-                {SIZES.map((size) => (
+                {activeSizes.map((size) => (
                   <div key={size}>
                     <label className="label-tag text-[9px] text-muted-foreground block mb-1">{size}</label>
                     <input
@@ -248,7 +256,7 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
                   <div key={variant.name} className="border border-border p-3">
                     <p className="label-tag text-[10px] text-brand-green mb-2">{variant.name.toUpperCase()}</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {SIZES.map((size) => (
+                      {activeSizes.map((size) => (
                         <div key={size}>
                           <label className="label-tag text-[9px] text-muted-foreground block mb-1">{size}</label>
                           <input

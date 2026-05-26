@@ -6,7 +6,7 @@ import type { ColorVariant } from "@/types";
 
 function parseStock(text: string): Record<string, number> | null {
   const stock: Record<string, number> = {};
-  const pairs = text.toUpperCase().match(/([A-Z]+)\s*[:\s]\s*(\d+)/g);
+  const pairs = text.toUpperCase().match(/([A-Z0-9]+)\s*[:\s]\s*(\d+)/g);
   if (!pairs || pairs.length === 0) return null;
   for (const pair of pairs) {
     const parts = pair.split(/[:\s]+/).filter(Boolean);
@@ -16,6 +16,12 @@ function parseStock(text: string): Record<string, number> | null {
     }
   }
   return Object.keys(stock).length > 0 ? stock : null;
+}
+
+function stockExample(category?: string): string {
+  return category === "pantalones"
+    ? "36:2 38:3 40:5 42:2"
+    : "S:2 M:3 L:5 XL:2 (o UNICO:10)";
 }
 
 function stockSummary(stock: Record<string, number>): string {
@@ -81,7 +87,7 @@ export async function handleAddColorText(ctx: Context) {
       }
       await setSession(chatId, { ...session, state: "addcolor_waiting_stock" });
       await ctx.reply(
-        `✅ ${photos.length} foto(s) guardadas.\n\n📦 Stock para *${session.addColorData?.color_name}*:\n\`S:2 M:3 L:5 XL:2\``,
+        `✅ ${photos.length} foto(s) guardadas.\n\n📦 Stock para *${session.addColorData?.color_name}*:\n\`${stockExample(session.addColorData?.product_category)}\``,
         { parse_mode: "Markdown" }
       );
       break;
@@ -156,13 +162,13 @@ export async function handleAddColorCallback(ctx: Context) {
   if (data.startsWith("addcolor_product:")) {
     if (session.state !== "addcolor_waiting_product_choice") return;
     const productId = data.replace("addcolor_product:", "");
-    const product   = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, name: true } });
+    const product   = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, name: true, category: true } });
     if (!product) { await ctx.reply("❌ Producto no encontrado."); return; }
 
     await setSession(chatId, {
       ...session,
       state: "addcolor_waiting_name",
-      addColorData: { product_id: productId, product_name: product.name },
+      addColorData: { product_id: productId, product_name: product.name, product_category: product.category },
     });
     await ctx.reply(`Producto: *${product.name}*\n\n¿Cómo se llama el nuevo color?`, { parse_mode: "Markdown" });
     return;

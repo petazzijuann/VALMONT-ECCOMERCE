@@ -45,11 +45,12 @@ export interface UploadData {
 }
 
 export interface AddColorData {
-  product_id?:   string;
-  product_name?: string;
-  color_name?:   string;
-  photos?:       string[];
-  stock?:        Record<string, number>;
+  product_id?:       string;
+  product_name?:     string;
+  product_category?: string;
+  color_name?:       string;
+  photos?:           string[];
+  stock?:            Record<string, number>;
 }
 
 export interface SaleData {

@@ -38,7 +38,7 @@ const COLOR_MORE_KEYBOARD = {
 
 function parseStock(text: string): Record<string, number> | null {
   const stock: Record<string, number> = {};
-  const pairs = text.toUpperCase().match(/([A-Z]+)\s*[:\s]\s*(\d+)/g);
+  const pairs = text.toUpperCase().match(/([A-Z0-9]+)\s*[:\s]\s*(\d+)/g);
   if (!pairs || pairs.length === 0) return null;
   for (const pair of pairs) {
     const parts = pair.split(/[:\s]+/).filter(Boolean);
@@ -48,6 +48,12 @@ function parseStock(text: string): Record<string, number> | null {
     }
   }
   return Object.keys(stock).length > 0 ? stock : null;
+}
+
+function stockExample(category?: string): string {
+  return category === "pantalones"
+    ? "36:2 38:3 40:5 42:2"
+    : "S:2 M:3 L:5 XL:2 (o UNICO:10)";
 }
 
 function stockSummary(stock: Record<string, number>): string {
@@ -177,7 +183,7 @@ export async function handleText(ctx: Context) {
       }
       await setSession(chatId, { ...session, state: "upload_waiting_color_stock" });
       await ctx.reply(
-        `✅ ${photos.length} foto(s) para *${session.uploadData?.current_color}* guardadas.\n\n📦 Stock para *${session.uploadData?.current_color}*:\n\`S:2 M:3 L:5 XL:2\``,
+        `✅ ${photos.length} foto(s) para *${session.uploadData?.current_color}* guardadas.\n\n📦 Stock para *${session.uploadData?.current_color}*:\n\`${stockExample(session.uploadData?.category)}\``,
         { parse_mode: "Markdown" }
       );
       break;
@@ -323,7 +329,7 @@ export async function handleCallback(ctx: Context) {
   if (data === "color_decision:single") {
     if (session.state !== "upload_waiting_color_decision") return;
     await setSession(chatId, { ...session, state: "upload_waiting_stock", uploadData: { ...session.uploadData, has_colors: false } });
-    await ctx.reply("📦 ¿Stock por talle?\n`S:2 M:3 L:5 XL:2`", { parse_mode: "Markdown" });
+    await ctx.reply(`📦 ¿Stock por talle?\n\`${stockExample(session.uploadData?.category)}\``, { parse_mode: "Markdown" });
     return;
   }
 
