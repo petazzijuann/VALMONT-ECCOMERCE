@@ -7,8 +7,14 @@ import type { SaleRecord } from "@/types";
 import { formatARS } from "@/lib/utils";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
+interface SaleWithCustomer extends SaleRecord {
+  customer_name?:    string | null;
+  customer_email?:   string | null;
+  customer_phone?:   string | null;
+}
+
 const fetcher = (url: string) =>
-  fetch(url).then((r) => r.json() as Promise<SaleRecord[]>);
+  fetch(url).then((r) => r.json() as Promise<SaleWithCustomer[]>);
 
 function MarginBadge({ sale, cost }: { sale: number; cost: number }) {
   const m = Math.round(((sale - cost) / sale) * 100);
@@ -23,11 +29,11 @@ function MarginBadge({ sale, cost }: { sale: number; cost: number }) {
 
 const HEADERS = [
   "FECHA", "PRODUCTO", "TALLE", "U.",
-  "PRECIO", "COSTO", "MARGEN", "CANAL", "PAGO", "",
+  "PRECIO", "COSTO", "MARGEN", "CANAL", "PAGO", "CLIENTE", "",
 ];
 
 export default function SalesTable() {
-  const { data: sales, isLoading, mutate } = useSWR<SaleRecord[]>(
+  const { data: sales, isLoading, mutate } = useSWR<SaleWithCustomer[]>(
     "/api/admin/sales?limit=200",
     fetcher
   );
@@ -121,7 +127,7 @@ export default function SalesTable() {
                 ))
               : sales?.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                    <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground text-sm">
                       No hay ventas registradas todavía.
                     </td>
                   </tr>
@@ -154,6 +160,18 @@ export default function SalesTable() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{s.payment_method}</td>
+                    <td className="px-4 py-3 max-w-[160px]">
+                      {s.customer_name ? (
+                        <div>
+                          <p className="text-xs truncate">{s.customer_name}</p>
+                          {s.customer_email && (
+                            <p className="label-tag text-[10px] text-muted-foreground truncate">{s.customer_email}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => openDelete(s)}

@@ -9,17 +9,32 @@ export async function GET(request: NextRequest) {
   const sales = await prisma.sale.findMany({
     orderBy: { created_at: "desc" },
     take: format === "csv" ? 5000 : limit,
+    include: {
+      order: {
+        select: {
+          customer_name:    true,
+          customer_email:   true,
+          customer_phone:   true,
+          customer_address: true,
+        },
+      },
+    },
   });
 
   const serialized = sales.map((s) => ({
     ...s,
-    sale_price: Number(s.sale_price),
-    cost_price: Number(s.cost_price),
-    created_at: s.created_at.toISOString(),
+    sale_price:       Number(s.sale_price),
+    cost_price:       Number(s.cost_price),
+    created_at:       s.created_at.toISOString(),
+    customer_name:    s.order?.customer_name    ?? null,
+    customer_email:   s.order?.customer_email   ?? null,
+    customer_phone:   s.order?.customer_phone   ?? null,
+    customer_address: s.order?.customer_address ?? null,
+    order: undefined, // no exponer el objeto anidado
   }));
 
   if (format === "csv") {
-    const header = "id,fecha,producto,talle,cantidad,precio_venta,precio_costo,canal,pago";
+    const header = "id,fecha,producto,talle,cantidad,precio_venta,precio_costo,canal,pago,cliente,email,telefono";
     const rows = serialized.map((s) =>
       [
         s.id,
@@ -31,6 +46,9 @@ export async function GET(request: NextRequest) {
         s.cost_price,
         s.channel,
         s.payment_method,
+        `"${(s.customer_name ?? "").replace(/"/g, '""')}"`,
+        s.customer_email ?? "",
+        s.customer_phone ?? "",
       ].join(",")
     );
     const csv = [header, ...rows].join("\n");

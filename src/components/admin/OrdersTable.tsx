@@ -8,8 +8,10 @@ import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
 interface AdminOrder {
   id: string;
-  customer_name: string;
-  customer_phone: string;
+  customer_name:    string;
+  customer_email:   string;
+  customer_phone:   string;
+  customer_address: { street: string; city: string; province: string; zip: string };
   items: OrderItem[];
   total_amount: number;
   payment_method: string;
@@ -131,6 +133,12 @@ export default function OrdersTable() {
                         hour: "2-digit", minute: "2-digit",
                       })} · {order.payment_method}
                     </p>
+                    <p className="text-muted-foreground text-xs mt-0.5">{order.customer_email}</p>
+                    {order.customer_address && (
+                      <p className="text-muted-foreground text-xs mt-0.5">
+                        {order.customer_address.street}, {order.customer_address.city}, {order.customer_address.province} ({order.customer_address.zip})
+                      </p>
+                    )}
                   </div>
                   <p className="price-text text-lg shrink-0">{formatARS(order.total_amount)}</p>
                 </div>
