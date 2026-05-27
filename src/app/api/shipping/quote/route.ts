@@ -2,6 +2,52 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
 import { cotizarEnviocom } from "@/lib/enviador/client";
 
+// Mapa de nombres de provincia → código corto que acepta Envia.com
+const PROVINCE_CODE: Record<string, string> = {
+  "buenos aires":                    "BA",
+  "ciudad autónoma de buenos aires": "CABA",
+  "ciudad autonoma de buenos aires": "CABA",
+  "caba":                            "CABA",
+  "capital federal":                 "CABA",
+  "catamarca":                       "CA",
+  "chaco":                           "CH",
+  "chubut":                          "CU",
+  "córdoba":                         "CO",
+  "cordoba":                         "CO",
+  "corrientes":                      "CR",
+  "entre ríos":                      "ER",
+  "entre rios":                      "ER",
+  "formosa":                         "FO",
+  "jujuy":                           "JU",
+  "la pampa":                        "LP",
+  "la rioja":                        "LR",
+  "mendoza":                         "MZ",
+  "misiones":                        "MI",
+  "neuquén":                         "NQ",
+  "neuquen":                         "NQ",
+  "río negro":                       "RN",
+  "rio negro":                       "RN",
+  "salta":                           "SA",
+  "san juan":                        "SJ",
+  "san luis":                        "SL",
+  "santa cruz":                      "SC",
+  "santa fe":                        "SF",
+  "santiago del estero":             "SE",
+  "tierra del fuego":                "TF",
+  "tucumán":                         "TU",
+  "tucuman":                         "TU",
+};
+
+function toProvinceCode(name: string): string {
+  if (!name) return "";
+  // Si ya parece un código corto (≤4 chars), devolverlo en mayúsculas
+  if (name.trim().length <= 4) return name.trim().toUpperCase();
+  const key = name.trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "") // quitar tildes
+    .replace(/[^a-z\s]/g, "").trim();
+  return PROVINCE_CODE[key] ?? PROVINCE_CODE[name.trim().toLowerCase()] ?? name.trim().slice(0, 2).toUpperCase();
+}
+
 // Rate limiting: 10 requests por minuto por IP
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
@@ -44,7 +90,7 @@ export async function POST(req: NextRequest) {
 
   const cpOrigen     = process.env.ENVIADOR_ORIGIN_CP        ?? "2000";
   const cityOrigen   = process.env.ENVIADOR_ORIGIN_CITY      ?? "Rosario";
-  const stateOrigen  = process.env.ENVIADOR_ORIGIN_STATE     ?? "Santa Fe";
+  const stateOrigen  = toProvinceCode(process.env.ENVIADOR_ORIGIN_STATE ?? "Santa Fe");
   const country      = process.env.ENVIADOR_COUNTRY          ?? "AR";
   const defaultPeso  = parseFloat(process.env.ENVIADOR_DEFAULT_WEIGHT_KG ?? "0.5");
   const defaultLargo = parseInt(process.env.ENVIADOR_BOX_LARGO_CM ?? "40");
@@ -82,7 +128,7 @@ export async function POST(req: NextRequest) {
     const options = await cotizarEnviocom({
       cpDestino:    cp_destino.trim(),
       cityDestino:  (city_destino  ?? "").trim(),
-      stateDestino: (state_destino ?? "").trim(),
+      stateDestino: toProvinceCode(state_destino ?? ""),
       cpOrigen,
       cityOrigen,
       stateOrigen,
