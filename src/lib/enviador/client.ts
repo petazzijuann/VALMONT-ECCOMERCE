@@ -72,7 +72,7 @@ export async function cotizarEnviocom(params: QuoteParams): Promise<EnvioOption[
         declared_value: params.valorDeclarado,
         weight:         params.peso,
       }],
-      shipment: { carrier: "", type: 1 },
+      shipment: { type: 1 },
     }),
     signal: AbortSignal.timeout(10000),
   });
