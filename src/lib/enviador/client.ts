@@ -16,8 +16,11 @@ export interface EnvioOption {
 export interface QuoteParams {
   cpDestino:      string;
   cityDestino:    string;
+  stateDestino:   string;
   cpOrigen:       string;
   cityOrigen:     string;
+  stateOrigen:    string;
+  country:        string;
   peso:           number;
   largo:          number;
   ancho:          number;
@@ -52,10 +55,14 @@ export async function cotizarEnviocom(params: QuoteParams): Promise<EnvioOption[
       origin: {
         postal_code: params.cpOrigen,
         city:        params.cityOrigen,
+        state:       params.stateOrigen,
+        country:     params.country,
       },
       destination: {
         postal_code: params.cpDestino,
         city:        params.cityDestino,
+        state:       params.stateDestino,
+        country:     params.country,
       },
       packages: [{
         content:        "Indumentaria",

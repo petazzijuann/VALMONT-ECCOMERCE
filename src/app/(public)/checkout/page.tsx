@@ -51,7 +51,7 @@ export default function CheckoutPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function quoteShipping(cp: string, city: string) {
+  async function quoteShipping(cp: string, city: string, state: string) {
     setQuoteStatus("loading");
     setQuoteError("");
     setSelectedShipping(null);
@@ -61,10 +61,11 @@ export default function CheckoutPage() {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
-          cp_destino:   cp.trim(),
-          city_destino: city.trim(),
-          cart_items:   items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
-          subtotal:     totalPrice(),
+          cp_destino:    cp.trim(),
+          city_destino:  city.trim(),
+          state_destino: state.trim(),
+          cart_items:    items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          subtotal:      totalPrice(),
         }),
       });
       const data = await res.json() as { options: EnvioOption[]; error?: string };
@@ -82,10 +83,10 @@ export default function CheckoutPage() {
     }
   }
 
-  function triggerQuote(cp: string, city: string) {
+  function triggerQuote(cp: string, city: string, state: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (cp.length >= 4 && city.length >= 2) {
-      debounceRef.current = setTimeout(() => quoteShipping(cp, city), 600);
+      debounceRef.current = setTimeout(() => quoteShipping(cp, city, state), 600);
     } else {
       setQuoteStatus("idle");
       setQuoteOptions([]);
@@ -95,12 +96,17 @@ export default function CheckoutPage() {
 
   function handleZipChange(v: string) {
     setField("zip", v);
-    triggerQuote(v, form.city);
+    triggerQuote(v, form.city, form.province);
   }
 
   function handleCityChange(v: string) {
     setField("city", v);
-    if (form.zip.length >= 4) triggerQuote(form.zip, v);
+    if (form.zip.length >= 4) triggerQuote(form.zip, v, form.province);
+  }
+
+  function handleProvinceChange(v: string) {
+    setField("province", v);
+    if (form.zip.length >= 4 && form.city.length >= 2) triggerQuote(form.zip, form.city, v);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -203,7 +209,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className={labelClass}>PROVINCIA *</label>
-                  <input required value={form.province} onChange={(e) => setField("province", e.target.value)} className={inputClass} placeholder="Santa Fe" />
+                  <input required value={form.province} onChange={(e) => handleProvinceChange(e.target.value)} className={inputClass} placeholder="Santa Fe" />
                 </div>
                 <div>
                   <label className={labelClass}>CÓDIGO POSTAL *</label>
@@ -226,9 +232,9 @@ export default function CheckoutPage() {
 
               {quoteStatus === "idle" && (
                 <p className="text-sm text-muted-foreground">
-                  {form.zip.length >= 4 && !form.city
-                    ? "Completá la ciudad para calcular el envío."
-                    : "Completá ciudad y código postal para calcular el envío."}
+                  {form.zip.length >= 4 && (!form.city || !form.province)
+                    ? "Completá ciudad y provincia para calcular el envío."
+                    : "Completá ciudad, provincia y CP para calcular el envío."}
                 </p>
               )}
 
