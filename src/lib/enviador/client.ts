@@ -53,13 +53,13 @@ export async function cotizarEnviocom(params: QuoteParams): Promise<EnvioOption[
     },
     body: JSON.stringify({
       origin: {
-        postal_code: params.cpOrigen,
+        postalCode: params.cpOrigen,
         city:        params.cityOrigen,
         state:       params.stateOrigen,
         country:     params.country,
       },
       destination: {
-        postal_code: params.cpDestino,
+        postalCode: params.cpDestino,
         city:        params.cityDestino,
         state:       params.stateDestino,
         country:     params.country,
