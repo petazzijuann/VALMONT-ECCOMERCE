@@ -99,9 +99,24 @@ async function fetchCarrierRate(
     return tarifas.map((item) => {
       const precio  = Number(item.totalPrice ?? item.total_price ?? item.price ?? item.amount ?? 0);
       const diasRaw = String(item.deliveryEstimatedDate ?? item.delivery_estimated_date ?? item.days ?? item.estimatedDays ?? "").trim();
+
+      // Identificar si es sucursal o domicilio buscando en todos los campos de texto
+      const textFields = [
+        item.serviceId, item.service_id, item.service,
+        item.description, item.serviceDescription,
+        item.name, item.serviceName, item.deliveryType,
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      let carrierName: string = carrier.name;
+      if (carrier.id === "andreani") {
+        carrierName = /sucursal|branch|pickup|retiro/i.test(textFields)
+          ? "Andreani — Retiro en sucursal"
+          : "Andreani — Envío a domicilio";
+      }
+
       return {
         carrier_id:   carrier.id,
-        carrier_name: carrier.name,
+        carrier_name: carrierName,
         days_label:   diasRaw
           ? (/^\d/.test(diasRaw) ? `${diasRaw} días hábiles` : diasRaw)
           : carrier.fallbackDays,
