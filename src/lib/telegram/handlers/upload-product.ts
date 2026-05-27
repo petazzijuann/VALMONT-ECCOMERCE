@@ -291,12 +291,29 @@ export async function handleText(ctx: Context) {
 
     case "upload_waiting_description": {
       if (text.length < 5) { await ctx.reply("❌ Descripción muy corta."); return; }
+      await setSession(chatId, {
+        ...session,
+        state: "upload_waiting_weight",
+        uploadData: { ...session.uploadData, description: text, tags: [] },
+      });
+      await ctx.reply("⚖️ ¿Peso del producto en kg? (ej: *0.5*)\nEscribí *OMITIR* si no sabés.", { parse_mode: "Markdown" });
+      break;
+    }
 
-      const d = { ...session.uploadData, description: text, tags: [] as string[] };
+    case "upload_waiting_weight": {
+      const upper = text.toUpperCase();
+      const weightKg = upper === "OMITIR" ? null : parseFloat(text.replace(",", "."));
+      if (upper !== "OMITIR" && (isNaN(weightKg!) || weightKg! < 0)) {
+        await ctx.reply("❌ Peso inválido. Ingresá un número (ej: 0.5) o escribí *OMITIR*.", { parse_mode: "Markdown" });
+        return;
+      }
+
+      const d = { ...session.uploadData, weight_kg: weightKg };
       await setSession(chatId, { state: "upload_confirming", uploadData: d });
 
       const hasColors = (d.color_variants?.length ?? 0) > 0;
       const margin    = Math.round(((d.price_sale! - d.price_cost!) / d.price_sale!) * 100);
+      const weightLine = weightKg != null ? `⚖️ Peso: ${weightKg} kg\n` : "";
 
       const preview = hasColors
         ? `*Vista previa del producto:*\n\n` +
@@ -304,15 +321,17 @@ export async function handleText(ctx: Context) {
           `🏷 Categoría: ${d.category}\n` +
           `🎨 Colores:\n${variantsSummary(d.color_variants!)}\n` +
           `💰 Venta: ${formatARS(d.price_sale!)}\n` +
-          `🔒 Costo: ${formatARS(d.price_cost!)} _(margen ${margin}%)_\n\n` +
-          `📝 _${text}_`
+          `🔒 Costo: ${formatARS(d.price_cost!)} _(margen ${margin}%)_\n` +
+          weightLine +
+          `\n📝 _${d.description}_`
         : `*Vista previa del producto:*\n\n` +
           `📌 *${d.name}*\n` +
           `🏷 Categoría: ${d.category}\n` +
           `📦 Stock: ${stockSummary(d.stock ?? {})}\n` +
           `💰 Venta: ${formatARS(d.price_sale!)}\n` +
-          `🔒 Costo: ${formatARS(d.price_cost!)} _(margen ${margin}%)_\n\n` +
-          `📝 _${text}_`;
+          `🔒 Costo: ${formatARS(d.price_cost!)} _(margen ${margin}%)_\n` +
+          weightLine +
+          `\n📝 _${d.description}_`;
 
       await ctx.reply(preview, {
         parse_mode: "Markdown",
@@ -422,6 +441,7 @@ export async function handleCallback(ctx: Context) {
         price_cost:     d.price_cost!,
         stock:          hasColors ? (firstVariant?.stock ?? {}) : (d.stock ?? {}),
         color_variants: colorVariantsData as object[],
+        weight_kg:      d.weight_kg ?? null,
         is_published:   false,
       },
     });

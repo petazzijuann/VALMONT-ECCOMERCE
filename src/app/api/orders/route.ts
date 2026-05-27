@@ -27,10 +27,13 @@ const orderSchema = z.object({
   payment_method: z.enum(["astropay", "transfer"]),
 
   // Envío (opcionales)
-  shipping_method:     z.string().nullable().optional(),
-  shipping_cost:       z.number().nullable().optional(),
-  shipping_cp:         z.string().nullable().optional(),
-  shipping_days_label: z.string().nullable().optional(),
+  shipping_method:      z.string().nullable().optional(),
+  shipping_cost:        z.number().nullable().optional(),
+  shipping_cp:          z.string().nullable().optional(),
+  shipping_days_label:  z.string().nullable().optional(),
+  shipping_carrier:     z.string().nullable().optional(),
+  shipping_carrier_name: z.string().nullable().optional(),
+  shipping_service_id:  z.string().nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -56,10 +59,13 @@ export async function POST(request: NextRequest) {
       payment_method:   data.payment_method,
       status:           "pending_payment",
 
-      shipping_method:     data.shipping_method     ?? null,
-      shipping_cost:       shippingCost > 0 ? shippingCost : null,
-      shipping_cp:         data.shipping_cp         ?? null,
-      shipping_days_label: data.shipping_days_label ?? null,
+      shipping_method:      data.shipping_method      ?? null,
+      shipping_cost:        shippingCost > 0 ? shippingCost : null,
+      shipping_cp:          data.shipping_cp          ?? null,
+      shipping_days_label:  data.shipping_days_label  ?? null,
+      shipping_carrier:     data.shipping_carrier     ?? null,
+      shipping_carrier_name: data.shipping_carrier_name ?? null,
+      shipping_service_id:  data.shipping_service_id  ?? null,
     },
   });
 

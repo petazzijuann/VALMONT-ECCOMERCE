@@ -16,6 +16,7 @@ export type BotState =
   | "upload_waiting_price_sale"
   | "upload_waiting_price_cost"
   | "upload_waiting_description"
+  | "upload_waiting_weight"
   | "upload_confirming"
   | "sale_waiting_search"
   | "sale_waiting_size"
@@ -37,6 +38,7 @@ export type BotState =
 
 export interface UploadData {
   photo_urls?:     string[];
+  weight_kg?:      number | null;
   name?:           string;
   category?:       string;
   stock?:          Record<string, number>;

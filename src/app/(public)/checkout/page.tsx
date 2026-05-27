@@ -1,23 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatARS } from "@/lib/utils";
-import type { ShippingOption } from "@/types";
+import type { EnvioOption } from "@/types";
 
 type PaymentMethod = "transfer" | "astropay";
-type QuoteStatus = "idle" | "loading" | "done" | "error";
+type QuoteStatus   = "idle" | "loading" | "done" | "error";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const {
-    items, totalPrice, clearCart,
-    shippingOption, shippingCp,
-    setShippingOption, setShippingCp,
-    totalWithShipping,
-  } = useCartStore();
+  const { items, totalPrice, clearCart } = useCartStore();
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
@@ -29,20 +23,18 @@ export default function CheckoutPage() {
     street:   "",
     city:     "",
     province: "",
-    zip:      shippingCp, // pre-llenado desde el carrito
+    zip:      "",
   });
 
-  // Recotización si el CP cambió en el checkout
-  const [cpChanged,    setCpChanged]    = useState(false);
-  const [cpInput,      setCpInput]      = useState(shippingCp);
+  const [selectedShipping, setSelectedShipping] = useState<EnvioOption | null>(null);
   const [quoteStatus,  setQuoteStatus]  = useState<QuoteStatus>("idle");
-  const [quoteOptions, setQuoteOptions] = useState<ShippingOption[]>([]);
+  const [quoteOptions, setQuoteOptions] = useState<EnvioOption[]>([]);
   const [quoteError,   setQuoteError]   = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const paymentMethod: PaymentMethod = "transfer";
-  // Capturado antes del JSX para evitar que TypeScript lo narrow a `never`
-  // dentro de bloques guardados por `!shippingOption`
-  const selectedShippingType = shippingOption?.type ?? null;
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   if (items.length === 0) {
     return (
@@ -57,40 +49,47 @@ export default function CheckoutPage() {
 
   function setField(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (key === "zip" && value !== shippingCp && shippingOption) {
-      setCpChanged(true);
-    }
   }
 
-  async function handleRequote() {
-    if (!/^\d{4,5}$/.test(cpInput.trim())) {
-      setQuoteError("El código postal debe tener 4 o 5 dígitos.");
-      return;
-    }
+  async function quoteShipping(cp: string) {
     setQuoteStatus("loading");
     setQuoteError("");
-    setShippingOption(null);
-    setCpChanged(false);
-
+    setSelectedShipping(null);
+    setQuoteOptions([]);
     try {
-      const itemsParam = encodeURIComponent(JSON.stringify(items.map((i) => ({ id: i.product_id, qty: i.quantity }))));
-      const res  = await fetch(`/api/shipping/quote?cp=${encodeURIComponent(cpInput.trim())}&items=${itemsParam}`);
-      const data = await res.json() as { options: ShippingOption[]; error?: string };
-
-      if (data.error || data.options.length === 0) {
-        setQuoteError(data.error ?? "No pudimos cotizar. Intentá de nuevo.");
+      const res  = await fetch("/api/shipping/quote", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          cp_destino: cp.trim(),
+          cart_items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          subtotal:   totalPrice(),
+        }),
+      });
+      const data = await res.json() as { options: EnvioOption[]; error?: string };
+      if (data.error || !data.options?.length) {
+        setQuoteError(data.error ?? "No pudimos cotizar para ese CP.");
         setQuoteStatus("error");
         return;
       }
-
       setQuoteOptions(data.options);
-      setShippingCp(cpInput.trim());
-      setShippingOption(data.options[0]);
-      setField("zip", cpInput.trim());
+      setSelectedShipping(data.options[0]);
       setQuoteStatus("done");
     } catch {
       setQuoteError("No pudimos cotizar. Intentá de nuevo.");
       setQuoteStatus("error");
+    }
+  }
+
+  function handleZipChange(v: string) {
+    setField("zip", v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (v.length >= 4) {
+      debounceRef.current = setTimeout(() => quoteShipping(v), 600);
+    } else {
+      setQuoteStatus("idle");
+      setQuoteOptions([]);
+      setSelectedShipping(null);
     }
   }
 
@@ -100,9 +99,9 @@ export default function CheckoutPage() {
     setLoading(true);
 
     const res = await fetch("/api/orders", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body:    JSON.stringify({
         customer_name:    form.customer_name,
         customer_email:   form.customer_email,
         customer_phone:   form.customer_phone,
@@ -121,11 +120,14 @@ export default function CheckoutPage() {
           qty:        i.quantity,
           price:      i.price,
         })),
-        payment_method:     paymentMethod,
-        shipping_method:    shippingOption?.type    ?? null,
-        shipping_cost:      shippingOption?.cost    ?? null,
-        shipping_cp:        shippingCp              || null,
-        shipping_days_label: shippingOption?.days_label ?? null,
+        payment_method:       paymentMethod,
+        shipping_method:      selectedShipping?.carrier_id       ?? null,
+        shipping_cost:        selectedShipping?.cost             ?? null,
+        shipping_cp:          form.zip                           || null,
+        shipping_days_label:  selectedShipping?.days_label       ?? null,
+        shipping_carrier:     selectedShipping?.carrier_id       ?? null,
+        shipping_carrier_name: selectedShipping?.carrier_name    ?? null,
+        shipping_service_id:  selectedShipping?.service_id      ?? null,
       }),
     });
 
@@ -148,7 +150,7 @@ export default function CheckoutPage() {
   const inputClass = "w-full border border-border px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors bg-background";
   const labelClass = "label-tag text-xs block mb-1.5";
   const subtotal   = totalPrice();
-  const total      = totalWithShipping();
+  const total      = subtotal + (selectedShipping?.cost ?? 0);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -198,11 +200,7 @@ export default function CheckoutPage() {
                   <input
                     required
                     value={form.zip}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, "");
-                      setField("zip", v);
-                      setCpInput(v);
-                    }}
+                    onChange={(e) => handleZipChange(e.target.value.replace(/\D/g, ""))}
                     className={inputClass}
                     placeholder="2000"
                     maxLength={5}
@@ -216,106 +214,47 @@ export default function CheckoutPage() {
             <section>
               <h2 className="font-bebas text-2xl mb-5">ENVÍO</h2>
 
-              {/* Ya seleccionado desde el carrito */}
-              {shippingOption && !cpChanged && (
-                <div className="border border-brand-green bg-brand-green/5 p-4 flex items-start gap-3">
-                  <Check size={16} className="text-brand-green mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">{shippingOption.label}</p>
-                    <p className="label-tag text-muted-foreground text-[10px] mt-0.5">
-                      {shippingOption.days_label} · {formatARS(shippingOption.cost)}
-                    </p>
-                  </div>
+              {quoteStatus === "idle" && (
+                <p className="text-sm text-muted-foreground">
+                  Ingresá tu código postal para calcular el envío automáticamente.
+                </p>
+              )}
+
+              {quoteStatus === "loading" && (
+                <div className="flex flex-col gap-2">
+                  <div className="h-14 bg-muted animate-pulse" />
+                  <div className="h-14 bg-muted animate-pulse" />
                 </div>
               )}
 
-              {/* CP cambió — ofrecer recotizar */}
-              {cpChanged && (
-                <div className="border border-border p-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    El código postal cambió. ¿Querés recotizar el envío?
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={5}
-                      value={cpInput}
-                      onChange={(e) => setCpInput(e.target.value.replace(/\D/g, ""))}
-                      placeholder={shippingCp || "CP"}
-                      className="flex-1 border border-border px-3 py-2 text-sm focus:outline-none focus:border-brand-green transition-colors bg-background"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRequote}
-                      disabled={quoteStatus === "loading"}
-                      className="label-tag text-xs px-4 py-2 border border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-cream transition-colors disabled:opacity-40"
-                    >
-                      {quoteStatus === "loading" ? "..." : "RECOTIZAR"}
-                    </button>
-                  </div>
-                  {quoteError && <p className="text-valmont-error text-xs label-tag mt-2">{quoteError}</p>}
-                  {quoteStatus === "done" && quoteOptions.map((opt) => (
-                    <button
-                      key={opt.type}
-                      type="button"
-                      onClick={() => setShippingOption(opt)}
-                      className={`w-full text-left border p-3 mt-2 transition-colors ${
-                        selectedShippingType === opt.type
-                          ? "border-brand-green bg-brand-green/5"
-                          : "border-border"
-                      }`}
-                    >
-                      <p className="label-tag text-xs">{opt.label} — {opt.days_label}</p>
-                      <p className="text-sm">{formatARS(opt.cost)}</p>
-                    </button>
-                  ))}
-                </div>
+              {quoteStatus === "error" && (
+                <p className="text-valmont-error text-xs label-tag">{quoteError}</p>
               )}
 
-              {/* Sin envío cotizado */}
-              {!shippingOption && !cpChanged && (
-                <div className="border border-border p-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    No seleccionaste un método de envío en el carrito. Podés continuar sin cotización o ingresar tu CP:
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={5}
-                      value={cpInput}
-                      onChange={(e) => setCpInput(e.target.value.replace(/\D/g, ""))}
-                      placeholder="Ej: 2000"
-                      className="flex-1 border border-border px-3 py-2 text-sm focus:outline-none focus:border-brand-green transition-colors bg-background"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRequote}
-                      disabled={quoteStatus === "loading"}
-                      className="label-tag text-xs px-4 py-2 border border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-cream transition-colors disabled:opacity-40"
-                    >
-                      {quoteStatus === "loading" ? "..." : "CALCULAR"}
-                    </button>
-                  </div>
-                  {quoteError && <p className="text-valmont-error text-xs label-tag mt-2">{quoteError}</p>}
-                  {quoteStatus === "done" && quoteOptions.map((opt) => (
-                    <button
-                      key={opt.type}
-                      type="button"
-                      onClick={() => setShippingOption(opt)}
-                      className={`w-full text-left border p-3 mt-2 transition-colors ${
-                        selectedShippingType === opt.type
-                          ? "border-brand-green bg-brand-green/5"
-                          : "border-border"
-                      }`}
-                    >
-                      <p className="label-tag text-xs">{opt.label} — {opt.days_label}</p>
-                      <p className="text-sm">{formatARS(opt.cost)}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+              {quoteStatus === "done" && quoteOptions.map((opt) => {
+                const sel = selectedShipping?.carrier_id === opt.carrier_id && selectedShipping?.service_id === opt.service_id;
+                return (
+                  <button
+                    key={`${opt.carrier_id}-${opt.service_id}`}
+                    type="button"
+                    onClick={() => setSelectedShipping(opt)}
+                    className={`w-full text-left border p-4 mb-2 transition-colors ${
+                      sel ? "border-brand-green bg-brand-green/5" : "border-border hover:border-brand-green/50"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-0.5 w-3 h-3 rounded-full border-2 shrink-0 ${sel ? "border-brand-green bg-brand-green" : "border-border"}`} />
+                      <div className="flex-1">
+                        <p className="label-tag text-xs">{opt.carrier_name}</p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <p className="text-muted-foreground text-xs">{opt.days_label}</p>
+                          <p className="text-sm font-medium">{formatARS(opt.cost)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </section>
 
             {/* Método de pago */}
@@ -352,10 +291,10 @@ export default function CheckoutPage() {
                 <span>{formatARS(subtotal)}</span>
               </div>
 
-              {shippingOption && (
+              {selectedShipping && (
                 <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-muted-foreground">{shippingOption.label}</span>
-                  <span>{formatARS(shippingOption.cost)}</span>
+                  <span className="text-muted-foreground">{selectedShipping.carrier_name}</span>
+                  <span>{formatARS(selectedShipping.cost)}</span>
                 </div>
               )}
 

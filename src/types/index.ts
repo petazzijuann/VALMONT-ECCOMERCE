@@ -139,11 +139,12 @@ export interface CreateOrderResponse {
   transfer_info?: TransferInfo;
 }
 
-export interface ShippingOption {
-  type: "rosario" | "retiro_local" | "andreani_standard" | "andreani_express";
-  label: string;
-  days_label: string;
-  cost: number;
+export interface EnvioOption {
+  carrier_id:   string;
+  carrier_name: string;
+  days_label:   string;
+  cost:         number;
+  service_id:   string;
 }
 
 export interface CartItem {
