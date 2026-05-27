@@ -1,8 +1,10 @@
 // Envia.com API client — documentación: https://developers.envia.com/
-// Agrega múltiples transportistas en una sola llamada. Solo se muestran Andreani y Correo Argentino.
 
 const ENVIA_API = "https://api.envia.com/ship/rate/";
-const ALLOWED_CARRIERS = ["andreani", "correo-argentino"];
+
+// Strings que pueden aparecer en la respuesta de Envia.com para cada carrier
+const ANDREANI_KEYS      = ["andreani"];
+const CORREO_KEYS        = ["correo-argentino", "correoargentino", "correo argentino", "correo", "oca"];
 
 export interface EnvioOption {
   carrier_id:   string;
@@ -20,6 +22,19 @@ export interface QuoteParams {
   ancho:          number;
   alto:           number;
   valorDeclarado: number;
+}
+
+function resolveCarrier(item: Record<string, unknown>): { id: string; name: string } | null {
+  // Envia.com puede usar distintos campos según la versión/transportista
+  const raw = String(
+    item.carrier ?? item.carrier_id ?? item.carrierId ?? item.provider ?? ""
+  ).toLowerCase().trim();
+
+  if (!raw) return null;
+
+  if (ANDREANI_KEYS.some((k) => raw.includes(k))) return { id: "andreani",         name: "Andreani" };
+  if (CORREO_KEYS.some((k)  => raw.includes(k))) return { id: "correo-argentino", name: "Correo Argentino" };
+  return null;
 }
 
 export async function cotizarEnviocom(params: QuoteParams): Promise<EnvioOption[]> {
@@ -47,31 +62,54 @@ export async function cotizarEnviocom(params: QuoteParams): Promise<EnvioOption[
       }],
       shipment: { carrier: "", type: 1 },
     }),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(10000),
   });
 
-  if (!res.ok) throw new Error(`Envia.com rate: HTTP ${res.status}`);
+  const bodyText = await res.text();
 
-  const body = await res.json();
-  const tarifas = Array.isArray(body)
-    ? body
-    : ((body as { data?: unknown[] }).data ?? []);
+  if (!res.ok) {
+    console.error(`[enviador] HTTP ${res.status} — body: ${bodyText}`);
+    throw new Error(`Envia.com rate: HTTP ${res.status}`);
+  }
 
-  return (tarifas as Record<string, unknown>[])
-    .filter((item) => ALLOWED_CARRIERS.includes(String(item.carrier ?? "").toLowerCase()))
-    .map((item) => {
-      const carrierId = String(item.carrier ?? "").toLowerCase();
-      const precio    = Number(item.totalPrice ?? item.price ?? 0);
-      const dias      = String(item.deliveryEstimatedDate ?? "");
-      return {
-        carrier_id:   carrierId,
-        carrier_name: carrierId === "andreani" ? "Andreani" : "Correo Argentino",
-        days_label:   dias
-          ? `${dias} días hábiles`
-          : (carrierId === "andreani" ? "3-5 días hábiles" : "5-7 días hábiles"),
-        cost:         Math.ceil(precio * (1 + markup / 100)),
-        service_id:   String(item.serviceId ?? item.service_id ?? ""),
-      };
-    })
-    .sort((a, b) => a.cost - b.cost);
+  let body: unknown;
+  try { body = JSON.parse(bodyText); } catch {
+    console.error("[enviador] JSON parse error — body:", bodyText.slice(0, 500));
+    throw new Error("Envia.com: respuesta no es JSON");
+  }
+
+  // Log the raw response so we can inspect it in Vercel logs
+  console.log("[enviador] raw response:", JSON.stringify(body).slice(0, 1000));
+
+  const tarifas: Record<string, unknown>[] = Array.isArray(body)
+    ? (body as Record<string, unknown>[])
+    : (((body as { data?: unknown[] }).data ?? []) as Record<string, unknown>[]);
+
+  console.log(`[enviador] tarifas count: ${tarifas.length}, carriers: ${tarifas.map((t) => t.carrier ?? t.carrier_id ?? t.carrierId ?? t.provider).join(", ")}`);
+
+  const results: EnvioOption[] = [];
+
+  for (const item of tarifas) {
+    const carrier = resolveCarrier(item);
+    if (!carrier) continue;
+
+    const precio = Number(
+      item.totalPrice ?? item.total_price ?? item.price ?? item.amount ?? 0
+    );
+    const diasRaw = item.deliveryEstimatedDate ?? item.delivery_estimated_date
+      ?? item.days ?? item.estimatedDays ?? "";
+    const dias = String(diasRaw).trim();
+
+    results.push({
+      carrier_id:   carrier.id,
+      carrier_name: carrier.name,
+      days_label:   dias
+        ? (/^\d/.test(dias) ? `${dias} días hábiles` : dias)
+        : (carrier.id === "andreani" ? "3-5 días hábiles" : "5-7 días hábiles"),
+      cost:         Math.ceil(precio * (1 + markup / 100)),
+      service_id:   String(item.serviceId ?? item.service_id ?? item.service ?? ""),
+    });
+  }
+
+  return results.sort((a, b) => a.cost - b.cost);
 }

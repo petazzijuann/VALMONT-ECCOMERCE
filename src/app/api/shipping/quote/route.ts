@@ -83,9 +83,16 @@ export async function POST(req: NextRequest) {
       alto,
       valorDeclarado: subtotal ?? 0,
     });
+    if (options.length === 0) {
+      return NextResponse.json({
+        options: [],
+        error: "No hay opciones de envío disponibles para ese código postal.",
+      });
+    }
     return NextResponse.json({ options });
   } catch (err) {
-    console.error("Envia.com quote error:", err);
-    return NextResponse.json({ options: [] }, { status: 200 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[shipping/quote] error:", msg);
+    return NextResponse.json({ options: [], error: msg }, { status: 200 });
   }
 }
