@@ -4,7 +4,8 @@ import { formatARS } from "@/lib/utils";
 import type { ProductPublic } from "@/types";
 
 export default function ProductCard({ product }: { product: ProductPublic }) {
-  const image = product.images[0];
+  const img1 = product.images[0];
+  const img2 = product.images[1];
   const sizes = Object.entries(product.stock as Record<string, number>)
     .filter(([, qty]) => qty > 0)
     .map(([size]) => size);
@@ -13,14 +14,29 @@ export default function ProductCard({ product }: { product: ProductPublic }) {
     <Link href={`/producto/${product.slug}`} className="group block">
       {/* Imagen */}
       <div className="relative aspect-[3/4] bg-muted overflow-hidden mb-3">
-        {image ? (
-          <Image
-            src={image}
-            alt={product.name}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-[1.04] transition-transform duration-[400ms] ease-[power1.out]"
-          />
+        {img1 ? (
+          <>
+            {/* Imagen principal: hace zoom y se desvanece si hay segunda */}
+            <Image
+              src={img1}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className={`object-cover transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.04]${
+                img2 ? " group-hover:opacity-0" : ""
+              }`}
+            />
+            {/* Segunda imagen: pre-escalada, solo hace crossfade de opacidad */}
+            {img2 && (
+              <Image
+                src={img2}
+                alt={product.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover opacity-0 scale-[1.04] group-hover:opacity-100 transition-opacity duration-500 ease-out"
+              />
+            )}
+          </>
         ) : (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
             <span className="label-tag text-muted-foreground">SIN IMAGEN</span>
