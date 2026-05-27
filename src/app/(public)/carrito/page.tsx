@@ -1,13 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, ArrowLeft } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatARS } from "@/lib/utils";
 import type { ShippingOption } from "@/types";
+import { lookupZone } from "@/data/shipping-zones";
 
-const SHIPPING_OPTIONS: ShippingOption[] = [
+const FIXED_OPTIONS: ShippingOption[] = [
   {
     type:       "rosario",
     label:      "Envío en Rosario",
@@ -28,6 +30,33 @@ export default function CarritoPage() {
     shippingOption, setShippingOption, totalWithShipping,
   } = useCartStore();
 
+  const [showNacional, setShowNacional] = useState(() =>
+    shippingOption?.type?.startsWith("nacional") ?? false
+  );
+  const [nationalCp, setNationalCp] = useState("");
+  const [nationalType, setNationalType] = useState<"sucursal" | "domicilio" | null>(() =>
+    shippingOption?.type === "nacional_sucursal" ? "sucursal"
+    : shippingOption?.type === "nacional_domicilio" ? "domicilio"
+    : null
+  );
+
+  const totalQty     = items.reduce((sum, i) => sum + i.quantity, 0);
+  const nationalZone = nationalCp.length === 4 ? lookupZone(nationalCp) : null;
+  const isNacionalActive = shippingOption?.type?.startsWith("nacional") ?? false;
+
+  // Keep nacional cost in sync when cart quantity changes
+  useEffect(() => {
+    if (!nationalType || !nationalZone) return;
+    const qty = items.reduce((sum, i) => sum + i.quantity, 0);
+    setShippingOption({
+      type:       `nacional_${nationalType}`,
+      label:      `Envío Nacional – ${nationalType === "sucursal" ? "Retiro en sucursal" : "A domicilio"}`,
+      days_label: "5-8 días hábiles",
+      cost:       nationalZone[nationalType] * qty,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   if (items.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
@@ -42,6 +71,44 @@ export default function CarritoPage() {
 
   const subtotal = totalPrice();
   const total    = totalWithShipping();
+
+  function handleFixedOption(opt: ShippingOption) {
+    setShippingOption(opt);
+    setShowNacional(false);
+    setNationalType(null);
+    setNationalCp("");
+  }
+
+  function handleNacionalToggle() {
+    const opening = !showNacional;
+    setShowNacional(opening);
+    if (opening && !isNacionalActive) {
+      setShippingOption(null);
+    }
+    if (!opening) {
+      setNationalType(null);
+      if (isNacionalActive) setShippingOption(null);
+    }
+  }
+
+  function handleCpChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setNationalCp(val);
+    setNationalType(null);
+    if (isNacionalActive) setShippingOption(null);
+  }
+
+  function selectNational(type: "sucursal" | "domicilio") {
+    if (!nationalZone) return;
+    const qty = items.reduce((sum, i) => sum + i.quantity, 0);
+    setNationalType(type);
+    setShippingOption({
+      type:       `nacional_${type}`,
+      label:      `Envío Nacional – ${type === "sucursal" ? "Retiro en sucursal" : "A domicilio"}`,
+      days_label: "5-8 días hábiles",
+      cost:       nationalZone[type] * qty,
+    });
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -117,13 +184,13 @@ export default function CarritoPage() {
             {/* Opciones de envío */}
             <p className="label-tag mb-3">ENVÍO</p>
             <div className="flex flex-col gap-2 mb-5">
-              {SHIPPING_OPTIONS.map((opt) => {
+              {FIXED_OPTIONS.map((opt) => {
                 const active = shippingOption?.type === opt.type;
                 return (
                   <button
                     key={opt.type}
                     type="button"
-                    onClick={() => setShippingOption(opt)}
+                    onClick={() => handleFixedOption(opt)}
                     className={`w-full text-left border p-3 transition-colors ${
                       active ? "border-brand-green bg-brand-green/5" : "border-border hover:border-brand-green/50"
                     }`}
@@ -145,6 +212,86 @@ export default function CarritoPage() {
                   </button>
                 );
               })}
+
+              {/* Envío Nacional */}
+              <div>
+                <button
+                  type="button"
+                  onClick={handleNacionalToggle}
+                  className={`w-full text-left border p-3 transition-colors ${
+                    isNacionalActive
+                      ? "border-brand-green bg-brand-green/5"
+                      : showNacional
+                      ? "border-brand-green/40"
+                      : "border-border hover:border-brand-green/50"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className={`mt-0.5 w-3 h-3 rounded-full border-2 shrink-0 ${
+                      isNacionalActive ? "border-brand-green bg-brand-green" : "border-border"
+                    }`} />
+                    <div className="flex-1">
+                      <p className="label-tag text-xs">Envío Nacional</p>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <p className="text-muted-foreground text-xs">Andreani · Todo el país</p>
+                        {isNacionalActive && (
+                          <p className="text-xs font-medium">{formatARS(shippingOption!.cost)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                {showNacional && (
+                  <div className="border border-t-0 border-border p-3 space-y-3">
+                    <div>
+                      <p className="label-tag text-[10px] text-muted-foreground mb-1">TU CÓDIGO POSTAL</p>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={nationalCp}
+                        onChange={handleCpChange}
+                        className="w-full border border-border px-3 py-2 text-sm focus:outline-none focus:border-brand-green transition-colors"
+                        placeholder="Ej: 1900"
+                        maxLength={4}
+                      />
+                    </div>
+
+                    {nationalCp.length === 4 && (
+                      nationalZone ? (
+                        <div className="space-y-2">
+                          <p className="label-tag text-[10px] text-muted-foreground">
+                            {nationalZone.label} · {totalQty} {totalQty === 1 ? "unidad" : "unidades"}
+                          </p>
+                          {(["sucursal", "domicilio"] as const).map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => selectNational(t)}
+                              className={`w-full text-left border px-3 py-2 flex items-center justify-between transition-colors ${
+                                nationalType === t
+                                  ? "border-brand-green bg-brand-green/5"
+                                  : "border-border hover:border-brand-green/50"
+                              }`}
+                            >
+                              <span className="label-tag text-[11px]">
+                                {t === "sucursal" ? "Retiro en sucursal" : "Envío a domicilio"}
+                              </span>
+                              <span className="text-xs font-medium">
+                                {formatARS(nationalZone[t] * totalQty)}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="label-tag text-[10px] text-valmont-error">
+                          No disponible para ese CP. Consultanos por WhatsApp.
+                        </p>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Total */}
