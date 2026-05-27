@@ -27,8 +27,9 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const { cp_destino, cart_items, subtotal } = (body ?? {}) as {
-    cp_destino?: string;
+  const { cp_destino, city_destino, cart_items, subtotal } = (body ?? {}) as {
+    cp_destino?:  string;
+    city_destino?: string;
     cart_items?: Array<{ product_id: string; quantity: number }>;
     subtotal?:   number;
   };
@@ -40,7 +41,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const cpOrigen     = process.env.ENVIADOR_ORIGIN_CP       ?? "2000";
+  const cpOrigen     = process.env.ENVIADOR_ORIGIN_CP        ?? "2000";
+  const cityOrigen   = process.env.ENVIADOR_ORIGIN_CITY      ?? "Rosario";
   const defaultPeso  = parseFloat(process.env.ENVIADOR_DEFAULT_WEIGHT_KG ?? "0.5");
   const defaultLargo = parseInt(process.env.ENVIADOR_BOX_LARGO_CM ?? "40");
   const defaultAncho = parseInt(process.env.ENVIADOR_BOX_ANCHO_CM ?? "30");
@@ -75,8 +77,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const options = await cotizarEnviocom({
-      cpDestino:      cp_destino.trim(),
+      cpDestino:   cp_destino.trim(),
+      cityDestino: (city_destino ?? "").trim(),
       cpOrigen,
+      cityOrigen,
       peso,
       largo,
       ancho,

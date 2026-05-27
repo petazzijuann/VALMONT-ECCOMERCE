@@ -51,7 +51,7 @@ export default function CheckoutPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function quoteShipping(cp: string) {
+  async function quoteShipping(cp: string, city: string) {
     setQuoteStatus("loading");
     setQuoteError("");
     setSelectedShipping(null);
@@ -61,9 +61,10 @@ export default function CheckoutPage() {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
-          cp_destino: cp.trim(),
-          cart_items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
-          subtotal:   totalPrice(),
+          cp_destino:   cp.trim(),
+          city_destino: city.trim(),
+          cart_items:   items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          subtotal:     totalPrice(),
         }),
       });
       const data = await res.json() as { options: EnvioOption[]; error?: string };
@@ -81,16 +82,25 @@ export default function CheckoutPage() {
     }
   }
 
-  function handleZipChange(v: string) {
-    setField("zip", v);
+  function triggerQuote(cp: string, city: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (v.length >= 4) {
-      debounceRef.current = setTimeout(() => quoteShipping(v), 600);
+    if (cp.length >= 4 && city.length >= 2) {
+      debounceRef.current = setTimeout(() => quoteShipping(cp, city), 600);
     } else {
       setQuoteStatus("idle");
       setQuoteOptions([]);
       setSelectedShipping(null);
     }
+  }
+
+  function handleZipChange(v: string) {
+    setField("zip", v);
+    triggerQuote(v, form.city);
+  }
+
+  function handleCityChange(v: string) {
+    setField("city", v);
+    if (form.zip.length >= 4) triggerQuote(form.zip, v);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -189,7 +199,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className={labelClass}>CIUDAD *</label>
-                  <input required value={form.city} onChange={(e) => setField("city", e.target.value)} className={inputClass} placeholder="Rosario" />
+                  <input required value={form.city} onChange={(e) => handleCityChange(e.target.value)} className={inputClass} placeholder="Rosario" />
                 </div>
                 <div>
                   <label className={labelClass}>PROVINCIA *</label>
@@ -216,7 +226,9 @@ export default function CheckoutPage() {
 
               {quoteStatus === "idle" && (
                 <p className="text-sm text-muted-foreground">
-                  Ingresá tu código postal para calcular el envío automáticamente.
+                  {form.zip.length >= 4 && !form.city
+                    ? "Completá la ciudad para calcular el envío."
+                    : "Completá ciudad y código postal para calcular el envío."}
                 </p>
               )}
 
