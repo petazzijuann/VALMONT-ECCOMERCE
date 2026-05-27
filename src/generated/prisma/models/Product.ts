@@ -29,11 +29,19 @@ export type AggregateProduct = {
 export type ProductAvgAggregateOutputType = {
   price_sale: runtime.Decimal | null
   price_cost: runtime.Decimal | null
+  weight_kg: number | null
+  length_cm: number | null
+  width_cm: number | null
+  height_cm: number | null
 }
 
 export type ProductSumAggregateOutputType = {
   price_sale: runtime.Decimal | null
   price_cost: runtime.Decimal | null
+  weight_kg: number | null
+  length_cm: number | null
+  width_cm: number | null
+  height_cm: number | null
 }
 
 export type ProductMinAggregateOutputType = {
@@ -44,6 +52,10 @@ export type ProductMinAggregateOutputType = {
   category: string | null
   price_sale: runtime.Decimal | null
   price_cost: runtime.Decimal | null
+  weight_kg: number | null
+  length_cm: number | null
+  width_cm: number | null
+  height_cm: number | null
   is_published: boolean | null
   instagram_posted: boolean | null
   created_at: Date | null
@@ -58,6 +70,10 @@ export type ProductMaxAggregateOutputType = {
   category: string | null
   price_sale: runtime.Decimal | null
   price_cost: runtime.Decimal | null
+  weight_kg: number | null
+  length_cm: number | null
+  width_cm: number | null
+  height_cm: number | null
   is_published: boolean | null
   instagram_posted: boolean | null
   created_at: Date | null
@@ -76,6 +92,10 @@ export type ProductCountAggregateOutputType = {
   price_cost: number
   stock: number
   color_variants: number
+  weight_kg: number
+  length_cm: number
+  width_cm: number
+  height_cm: number
   is_published: number
   instagram_posted: number
   created_at: number
@@ -87,11 +107,19 @@ export type ProductCountAggregateOutputType = {
 export type ProductAvgAggregateInputType = {
   price_sale?: true
   price_cost?: true
+  weight_kg?: true
+  length_cm?: true
+  width_cm?: true
+  height_cm?: true
 }
 
 export type ProductSumAggregateInputType = {
   price_sale?: true
   price_cost?: true
+  weight_kg?: true
+  length_cm?: true
+  width_cm?: true
+  height_cm?: true
 }
 
 export type ProductMinAggregateInputType = {
@@ -102,6 +130,10 @@ export type ProductMinAggregateInputType = {
   category?: true
   price_sale?: true
   price_cost?: true
+  weight_kg?: true
+  length_cm?: true
+  width_cm?: true
+  height_cm?: true
   is_published?: true
   instagram_posted?: true
   created_at?: true
@@ -116,6 +148,10 @@ export type ProductMaxAggregateInputType = {
   category?: true
   price_sale?: true
   price_cost?: true
+  weight_kg?: true
+  length_cm?: true
+  width_cm?: true
+  height_cm?: true
   is_published?: true
   instagram_posted?: true
   created_at?: true
@@ -134,6 +170,10 @@ export type ProductCountAggregateInputType = {
   price_cost?: true
   stock?: true
   color_variants?: true
+  weight_kg?: true
+  length_cm?: true
+  width_cm?: true
+  height_cm?: true
   is_published?: true
   instagram_posted?: true
   created_at?: true
@@ -239,6 +279,10 @@ export type ProductGroupByOutputType = {
   price_cost: runtime.Decimal
   stock: runtime.JsonValue
   color_variants: runtime.JsonValue
+  weight_kg: number | null
+  length_cm: number | null
+  width_cm: number | null
+  height_cm: number | null
   is_published: boolean
   instagram_posted: boolean
   created_at: Date
@@ -280,6 +324,10 @@ export type ProductWhereInput = {
   price_cost?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonFilter<"Product">
   color_variants?: Prisma.JsonFilter<"Product">
+  weight_kg?: Prisma.FloatNullableFilter<"Product"> | number | null
+  length_cm?: Prisma.FloatNullableFilter<"Product"> | number | null
+  width_cm?: Prisma.FloatNullableFilter<"Product"> | number | null
+  height_cm?: Prisma.FloatNullableFilter<"Product"> | number | null
   is_published?: Prisma.BoolFilter<"Product"> | boolean
   instagram_posted?: Prisma.BoolFilter<"Product"> | boolean
   created_at?: Prisma.DateTimeFilter<"Product"> | Date | string
@@ -299,6 +347,10 @@ export type ProductOrderByWithRelationInput = {
   price_cost?: Prisma.SortOrder
   stock?: Prisma.SortOrder
   color_variants?: Prisma.SortOrder
+  weight_kg?: Prisma.SortOrderInput | Prisma.SortOrder
+  length_cm?: Prisma.SortOrderInput | Prisma.SortOrder
+  width_cm?: Prisma.SortOrderInput | Prisma.SortOrder
+  height_cm?: Prisma.SortOrderInput | Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -321,6 +373,10 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   price_cost?: Prisma.DecimalFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonFilter<"Product">
   color_variants?: Prisma.JsonFilter<"Product">
+  weight_kg?: Prisma.FloatNullableFilter<"Product"> | number | null
+  length_cm?: Prisma.FloatNullableFilter<"Product"> | number | null
+  width_cm?: Prisma.FloatNullableFilter<"Product"> | number | null
+  height_cm?: Prisma.FloatNullableFilter<"Product"> | number | null
   is_published?: Prisma.BoolFilter<"Product"> | boolean
   instagram_posted?: Prisma.BoolFilter<"Product"> | boolean
   created_at?: Prisma.DateTimeFilter<"Product"> | Date | string
@@ -340,6 +396,10 @@ export type ProductOrderByWithAggregationInput = {
   price_cost?: Prisma.SortOrder
   stock?: Prisma.SortOrder
   color_variants?: Prisma.SortOrder
+  weight_kg?: Prisma.SortOrderInput | Prisma.SortOrder
+  length_cm?: Prisma.SortOrderInput | Prisma.SortOrder
+  width_cm?: Prisma.SortOrderInput | Prisma.SortOrder
+  height_cm?: Prisma.SortOrderInput | Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -366,6 +426,10 @@ export type ProductScalarWhereWithAggregatesInput = {
   price_cost?: Prisma.DecimalWithAggregatesFilter<"Product"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonWithAggregatesFilter<"Product">
   color_variants?: Prisma.JsonWithAggregatesFilter<"Product">
+  weight_kg?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
+  length_cm?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
+  width_cm?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
+  height_cm?: Prisma.FloatNullableWithAggregatesFilter<"Product"> | number | null
   is_published?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   instagram_posted?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   created_at?: Prisma.DateTimeWithAggregatesFilter<"Product"> | Date | string
@@ -384,6 +448,10 @@ export type ProductCreateInput = {
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: number | null
+  length_cm?: number | null
+  width_cm?: number | null
+  height_cm?: number | null
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -403,6 +471,10 @@ export type ProductUncheckedCreateInput = {
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: number | null
+  length_cm?: number | null
+  width_cm?: number | null
+  height_cm?: number | null
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -422,6 +494,10 @@ export type ProductUpdateInput = {
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  length_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  width_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  height_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -441,6 +517,10 @@ export type ProductUncheckedUpdateInput = {
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  length_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  width_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  height_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -460,6 +540,10 @@ export type ProductCreateManyInput = {
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: number | null
+  length_cm?: number | null
+  width_cm?: number | null
+  height_cm?: number | null
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -478,6 +562,10 @@ export type ProductUpdateManyMutationInput = {
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  length_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  width_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  height_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -496,6 +584,10 @@ export type ProductUncheckedUpdateManyInput = {
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  length_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  width_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  height_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -522,6 +614,10 @@ export type ProductCountOrderByAggregateInput = {
   price_cost?: Prisma.SortOrder
   stock?: Prisma.SortOrder
   color_variants?: Prisma.SortOrder
+  weight_kg?: Prisma.SortOrder
+  length_cm?: Prisma.SortOrder
+  width_cm?: Prisma.SortOrder
+  height_cm?: Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -531,6 +627,10 @@ export type ProductCountOrderByAggregateInput = {
 export type ProductAvgOrderByAggregateInput = {
   price_sale?: Prisma.SortOrder
   price_cost?: Prisma.SortOrder
+  weight_kg?: Prisma.SortOrder
+  length_cm?: Prisma.SortOrder
+  width_cm?: Prisma.SortOrder
+  height_cm?: Prisma.SortOrder
 }
 
 export type ProductMaxOrderByAggregateInput = {
@@ -541,6 +641,10 @@ export type ProductMaxOrderByAggregateInput = {
   category?: Prisma.SortOrder
   price_sale?: Prisma.SortOrder
   price_cost?: Prisma.SortOrder
+  weight_kg?: Prisma.SortOrder
+  length_cm?: Prisma.SortOrder
+  width_cm?: Prisma.SortOrder
+  height_cm?: Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -555,6 +659,10 @@ export type ProductMinOrderByAggregateInput = {
   category?: Prisma.SortOrder
   price_sale?: Prisma.SortOrder
   price_cost?: Prisma.SortOrder
+  weight_kg?: Prisma.SortOrder
+  length_cm?: Prisma.SortOrder
+  width_cm?: Prisma.SortOrder
+  height_cm?: Prisma.SortOrder
   is_published?: Prisma.SortOrder
   instagram_posted?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -564,6 +672,10 @@ export type ProductMinOrderByAggregateInput = {
 export type ProductSumOrderByAggregateInput = {
   price_sale?: Prisma.SortOrder
   price_cost?: Prisma.SortOrder
+  weight_kg?: Prisma.SortOrder
+  length_cm?: Prisma.SortOrder
+  width_cm?: Prisma.SortOrder
+  height_cm?: Prisma.SortOrder
 }
 
 export type ProductScalarRelationFilter = {
@@ -601,6 +713,14 @@ export type DecimalFieldUpdateOperationsInput = {
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
 }
 
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
 }
@@ -635,6 +755,10 @@ export type ProductCreateWithoutSalesInput = {
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: number | null
+  length_cm?: number | null
+  width_cm?: number | null
+  height_cm?: number | null
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -653,6 +777,10 @@ export type ProductUncheckedCreateWithoutSalesInput = {
   price_cost: runtime.Decimal | runtime.DecimalJsLike | number | string
   stock: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: number | null
+  length_cm?: number | null
+  width_cm?: number | null
+  height_cm?: number | null
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: Date | string
@@ -687,6 +815,10 @@ export type ProductUpdateWithoutSalesInput = {
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  length_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  width_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  height_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -705,6 +837,10 @@ export type ProductUncheckedUpdateWithoutSalesInput = {
   price_cost?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   stock?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   color_variants?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  weight_kg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  length_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  width_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  height_cm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   is_published?: Prisma.BoolFieldUpdateOperationsInput | boolean
   instagram_posted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -754,6 +890,10 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   price_cost?: boolean
   stock?: boolean
   color_variants?: boolean
+  weight_kg?: boolean
+  length_cm?: boolean
+  width_cm?: boolean
+  height_cm?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
@@ -774,6 +914,10 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   price_cost?: boolean
   stock?: boolean
   color_variants?: boolean
+  weight_kg?: boolean
+  length_cm?: boolean
+  width_cm?: boolean
+  height_cm?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
@@ -792,6 +936,10 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   price_cost?: boolean
   stock?: boolean
   color_variants?: boolean
+  weight_kg?: boolean
+  length_cm?: boolean
+  width_cm?: boolean
+  height_cm?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
@@ -810,13 +958,17 @@ export type ProductSelectScalar = {
   price_cost?: boolean
   stock?: boolean
   color_variants?: boolean
+  weight_kg?: boolean
+  length_cm?: boolean
+  width_cm?: boolean
+  height_cm?: boolean
   is_published?: boolean
   instagram_posted?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "description" | "category" | "images" | "tags" | "price_sale" | "price_cost" | "stock" | "color_variants" | "is_published" | "instagram_posted" | "created_at" | "updated_at", ExtArgs["result"]["product"]>
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "description" | "category" | "images" | "tags" | "price_sale" | "price_cost" | "stock" | "color_variants" | "weight_kg" | "length_cm" | "width_cm" | "height_cm" | "is_published" | "instagram_posted" | "created_at" | "updated_at", ExtArgs["result"]["product"]>
 export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sales?: boolean | Prisma.Product$salesArgs<ExtArgs>
   _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -841,6 +993,10 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     price_cost: runtime.Decimal
     stock: runtime.JsonValue
     color_variants: runtime.JsonValue
+    weight_kg: number | null
+    length_cm: number | null
+    width_cm: number | null
+    height_cm: number | null
     is_published: boolean
     instagram_posted: boolean
     created_at: Date
@@ -1280,6 +1436,10 @@ export interface ProductFieldRefs {
   readonly price_cost: Prisma.FieldRef<"Product", 'Decimal'>
   readonly stock: Prisma.FieldRef<"Product", 'Json'>
   readonly color_variants: Prisma.FieldRef<"Product", 'Json'>
+  readonly weight_kg: Prisma.FieldRef<"Product", 'Float'>
+  readonly length_cm: Prisma.FieldRef<"Product", 'Float'>
+  readonly width_cm: Prisma.FieldRef<"Product", 'Float'>
+  readonly height_cm: Prisma.FieldRef<"Product", 'Float'>
   readonly is_published: Prisma.FieldRef<"Product", 'Boolean'>
   readonly instagram_posted: Prisma.FieldRef<"Product", 'Boolean'>
   readonly created_at: Prisma.FieldRef<"Product", 'DateTime'>

@@ -29,6 +29,10 @@ interface FormState {
   colorVariants: Array<{ name: string; images: string[]; stock: Record<string, string> }>;
   tags: string;
   is_published: boolean;
+  weight_kg: string;
+  length_cm: string;
+  width_cm:  string;
+  height_cm: string;
 }
 
 function toForm(p: ProductAdmin): FormState {
@@ -49,6 +53,10 @@ function toForm(p: ProductAdmin): FormState {
     })),
     tags:         p.tags.join(", "),
     is_published: p.is_published,
+    weight_kg:    p.weight_kg != null ? String(p.weight_kg) : "",
+    length_cm:    p.length_cm != null ? String(p.length_cm) : "",
+    width_cm:     p.width_cm  != null ? String(p.width_cm)  : "",
+    height_cm:    p.height_cm != null ? String(p.height_cm) : "",
   };
 }
 
@@ -91,6 +99,11 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
       ? Object.fromEntries(sizes.map((s) => [s, parseInt(form.colorVariants[0].stock[s] ?? "0", 10) || 0]))
       : Object.fromEntries(sizes.map((s) => [s, Math.max(0, parseInt(form.stock[s] ?? "0", 10) || 0)]));
 
+    const weight_kg = form.weight_kg !== "" ? parseFloat(form.weight_kg) : null;
+    const length_cm = form.length_cm !== "" ? parseFloat(form.length_cm) : null;
+    const width_cm  = form.width_cm  !== "" ? parseFloat(form.width_cm)  : null;
+    const height_cm = form.height_cm !== "" ? parseFloat(form.height_cm) : null;
+
     const body: Record<string, unknown> = {
       name:         form.name.trim(),
       description:  form.description.trim(),
@@ -100,6 +113,10 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
       stock:        flatStock,
       tags,
       is_published: form.is_published,
+      weight_kg:    weight_kg !== null && !isNaN(weight_kg) ? weight_kg : null,
+      length_cm:    length_cm !== null && !isNaN(length_cm) ? length_cm : null,
+      width_cm:     width_cm  !== null && !isNaN(width_cm)  ? width_cm  : null,
+      height_cm:    height_cm !== null && !isNaN(height_cm) ? height_cm : null,
     };
 
     if (hasVariants) {
@@ -292,6 +309,55 @@ export default function EditProductSheet({ product, open, onOpenChange, onSaved 
               placeholder="oversize, negro, algodón"
               className="w-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-green transition-colors"
             />
+          </div>
+
+          {/* Dimensiones físicas */}
+          <div>
+            <label className="label-tag text-[10px] text-muted-foreground block mb-1">
+              DIMENSIONES <span className="font-normal">(opcionales — se usan para calcular el envío)</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label className="label-tag text-[9px] text-muted-foreground block mb-1">Peso (kg)</label>
+                <input
+                  type="number" min="0" step="0.1"
+                  value={form.weight_kg}
+                  onChange={(e) => setField("weight_kg", e.target.value)}
+                  placeholder="0.5"
+                  className="w-full border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-green transition-colors"
+                />
+              </div>
+              <div>
+                <label className="label-tag text-[9px] text-muted-foreground block mb-1">Largo (cm)</label>
+                <input
+                  type="number" min="0" step="1"
+                  value={form.length_cm}
+                  onChange={(e) => setField("length_cm", e.target.value)}
+                  placeholder="40"
+                  className="w-full border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-green transition-colors"
+                />
+              </div>
+              <div>
+                <label className="label-tag text-[9px] text-muted-foreground block mb-1">Ancho (cm)</label>
+                <input
+                  type="number" min="0" step="1"
+                  value={form.width_cm}
+                  onChange={(e) => setField("width_cm", e.target.value)}
+                  placeholder="30"
+                  className="w-full border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-green transition-colors"
+                />
+              </div>
+              <div>
+                <label className="label-tag text-[9px] text-muted-foreground block mb-1">Alto (cm)</label>
+                <input
+                  type="number" min="0" step="1"
+                  value={form.height_cm}
+                  onChange={(e) => setField("height_cm", e.target.value)}
+                  placeholder="5"
+                  className="w-full border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-green transition-colors"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center justify-between py-2">

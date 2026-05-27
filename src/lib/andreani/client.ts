@@ -31,9 +31,24 @@ export interface AndreaniQuoteItem {
 // Cotiza el envío entre el CP origen (del local) y el CP destino del cliente.
 // El formato exacto del body y los campos de respuesta pueden variar según la versión
 // de la API. Revisar con las credenciales reales en https://dev.andreani.com/
-export async function cotizarEnvio(cpDestino: string, pesoKg: number): Promise<AndreaniQuoteItem[]> {
+export interface PackageDimensions {
+  largo: number;
+  ancho: number;
+  alto:  number;
+}
+
+export async function cotizarEnvio(
+  cpDestino: string,
+  pesoKg: number,
+  dims?: PackageDimensions
+): Promise<AndreaniQuoteItem[]> {
   const cpOrigen  = process.env.ANDREANI_ORIGIN_CP;
   const contract  = process.env.ANDREANI_CONTRACT;
+  const volumen   = dims ?? {
+    largo: parseInt(process.env.ANDREANI_BOX_LARGO_CM ?? "30"),
+    ancho: parseInt(process.env.ANDREANI_BOX_ANCHO_CM ?? "20"),
+    alto:  parseInt(process.env.ANDREANI_BOX_ALTO_CM  ?? "5"),
+  };
 
   const res = await fetch(`${BASE}/v2/tarifas`, {
     method: "POST",
@@ -43,7 +58,7 @@ export async function cotizarEnvio(cpDestino: string, pesoKg: number): Promise<A
       cpDestino,
       contrato: contract,
       pesoBruto: pesoKg,
-      volumen: { alto: 5, ancho: 20, largo: 30 },
+      volumen,
     }),
     signal: AbortSignal.timeout(8000),
   });
@@ -131,9 +146,9 @@ export async function crearOrdenEnvio(input: AndreaniOrderInput): Promise<Andrea
       },
       bultos: [{
         kilos:  parseFloat(process.env.ANDREANI_PACKAGE_WEIGHT_KG ?? "0.5"),
-        alto:   5,
-        ancho:  20,
-        largo:  30,
+        alto:   parseInt(process.env.ANDREANI_BOX_ALTO_CM  ?? "5"),
+        ancho:  parseInt(process.env.ANDREANI_BOX_ANCHO_CM ?? "20"),
+        largo:  parseInt(process.env.ANDREANI_BOX_LARGO_CM ?? "30"),
         valorDeclarado: input.totalAmount,
         descripcion: input.items.map((i) => `${i.name} x${i.qty}`).join(", "),
       }],

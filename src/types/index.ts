@@ -43,6 +43,10 @@ export interface ProductPublic {
 export interface ProductAdmin extends ProductPublic {
   price_cost: number;
   instagram_posted: boolean;
+  weight_kg:  number | null;
+  length_cm:  number | null;
+  width_cm:   number | null;
+  height_cm:  number | null;
 }
 
 export interface OrderItem {

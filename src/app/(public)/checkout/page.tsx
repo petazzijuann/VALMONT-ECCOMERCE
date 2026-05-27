@@ -73,7 +73,8 @@ export default function CheckoutPage() {
     setCpChanged(false);
 
     try {
-      const res  = await fetch(`/api/shipping/quote?cp=${encodeURIComponent(cpInput.trim())}`);
+      const itemsParam = encodeURIComponent(JSON.stringify(items.map((i) => ({ id: i.product_id, qty: i.quantity }))));
+      const res  = await fetch(`/api/shipping/quote?cp=${encodeURIComponent(cpInput.trim())}&items=${itemsParam}`);
       const data = await res.json() as { options: ShippingOption[]; error?: string };
 
       if (data.error || data.options.length === 0) {
