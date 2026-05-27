@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     const options = await cotizarEnviocom({
       cpDestino:    cp_destino.trim(),
       cityDestino:  (city_destino  ?? "").trim(),
-      stateDestino: toProvinceCode(state_destino ?? ""),
+      stateDestino: (state_destino ?? "").trim(),
       cpOrigen,
       cityOrigen,
       stateOrigen,

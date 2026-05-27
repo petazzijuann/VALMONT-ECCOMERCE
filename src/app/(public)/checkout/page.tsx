@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cart";
 import { formatARS } from "@/lib/utils";
+import { PROVINCES } from "@/data/argentina";
 import type { EnvioOption } from "@/types";
 
 type PaymentMethod = "transfer" | "astropay";
@@ -20,10 +21,11 @@ export default function CheckoutPage() {
     customer_name:  "",
     customer_email: "",
     customer_phone: "",
-    street:   "",
-    city:     "",
-    province: "",
-    zip:      "",
+    street:       "",
+    city:         "",
+    province:     "",
+    province_code: "",
+    zip:          "",
   });
 
   const [selectedShipping, setSelectedShipping] = useState<EnvioOption | null>(null);
@@ -96,17 +98,17 @@ export default function CheckoutPage() {
 
   function handleZipChange(v: string) {
     setField("zip", v);
-    triggerQuote(v, form.city, form.province);
+    triggerQuote(v, form.city, form.province_code);
   }
 
   function handleCityChange(v: string) {
     setField("city", v);
-    if (form.zip.length >= 4) triggerQuote(form.zip, v, form.province);
+    if (form.zip.length >= 4) triggerQuote(form.zip, v, form.province_code);
   }
 
-  function handleProvinceChange(v: string) {
-    setField("province", v);
-    if (form.zip.length >= 4 && form.city.length >= 2) triggerQuote(form.zip, form.city, v);
+  function handleProvinceChange(name: string, code: string) {
+    setForm((f) => ({ ...f, province: name, province_code: code }));
+    if (form.zip.length >= 4 && form.city.length >= 2) triggerQuote(form.zip, form.city, code);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -209,7 +211,20 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className={labelClass}>PROVINCIA *</label>
-                  <input required value={form.province} onChange={(e) => handleProvinceChange(e.target.value)} className={inputClass} placeholder="Santa Fe" />
+                  <select
+                    required
+                    value={form.province}
+                    onChange={(e) => {
+                      const opt = PROVINCES.find((p) => p.name === e.target.value);
+                      handleProvinceChange(e.target.value, opt?.code ?? "");
+                    }}
+                    className={`${inputClass} appearance-none`}
+                  >
+                    <option value="">Seleccioná tu provincia</option>
+                    {PROVINCES.map((p) => (
+                      <option key={p.code} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={labelClass}>CÓDIGO POSTAL *</label>
@@ -232,9 +247,9 @@ export default function CheckoutPage() {
 
               {quoteStatus === "idle" && (
                 <p className="text-sm text-muted-foreground">
-                  {form.zip.length >= 4 && (!form.city || !form.province)
+                  {form.zip.length >= 4 && (!form.city || !form.province_code)
                     ? "Completá ciudad y provincia para calcular el envío."
-                    : "Completá ciudad, provincia y CP para calcular el envío."}
+                    : "Completá ciudad, provincia y código postal para calcular el envío."}
                 </p>
               )}
 
