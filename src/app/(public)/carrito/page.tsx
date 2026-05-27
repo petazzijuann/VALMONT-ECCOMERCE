@@ -5,9 +5,28 @@ import Link from "next/link";
 import { Trash2, ArrowLeft } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatARS } from "@/lib/utils";
+import type { ShippingOption } from "@/types";
+
+const SHIPPING_OPTIONS: ShippingOption[] = [
+  {
+    type:       "rosario",
+    label:      "Envío en Rosario",
+    days_label: "Coordinamos fecha de entrega",
+    cost:       3000,
+  },
+  {
+    type:       "retiro_local",
+    label:      "Retiro en local",
+    days_label: "España 1541, Rosario · Coordinamos horario por WhatsApp",
+    cost:       0,
+  },
+];
 
 export default function CarritoPage() {
-  const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCartStore();
+  const {
+    items, removeItem, updateQuantity, totalPrice, clearCart,
+    shippingOption, setShippingOption, totalWithShipping,
+  } = useCartStore();
 
   if (items.length === 0) {
     return (
@@ -22,6 +41,7 @@ export default function CarritoPage() {
   }
 
   const subtotal = totalPrice();
+  const total    = totalWithShipping();
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -79,6 +99,7 @@ export default function CarritoPage() {
           <div className="border border-border p-6 sticky top-24">
             <h2 className="font-bebas text-2xl mb-6">RESUMEN</h2>
 
+            {/* Items */}
             <div className="flex flex-col gap-3 mb-4 text-sm">
               {items.map((item) => (
                 <div key={`${item.product_id}-${item.size}-${item.color ?? ""}`} className="flex justify-between text-muted-foreground">
@@ -88,12 +109,57 @@ export default function CarritoPage() {
               ))}
             </div>
 
-            <div className="border-t border-border pt-4 mb-6 flex items-center justify-between">
-              <p className="label-tag">SUBTOTAL</p>
-              <p className="price-text text-xl">{formatARS(subtotal)}</p>
+            <div className="border-t border-border pt-3 flex items-center justify-between mb-5 text-sm">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>{formatARS(subtotal)}</span>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-4">El envío se calcula en el checkout.</p>
+            {/* Opciones de envío */}
+            <p className="label-tag mb-3">ENVÍO</p>
+            <div className="flex flex-col gap-2 mb-5">
+              {SHIPPING_OPTIONS.map((opt) => {
+                const active = shippingOption?.type === opt.type;
+                return (
+                  <button
+                    key={opt.type}
+                    type="button"
+                    onClick={() => setShippingOption(opt)}
+                    className={`w-full text-left border p-3 transition-colors ${
+                      active ? "border-brand-green bg-brand-green/5" : "border-border hover:border-brand-green/50"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-0.5 w-3 h-3 rounded-full border-2 shrink-0 ${
+                        active ? "border-brand-green bg-brand-green" : "border-border"
+                      }`} />
+                      <div className="flex-1">
+                        <p className="label-tag text-xs">{opt.label}</p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <p className="text-muted-foreground text-xs">{opt.days_label}</p>
+                          <p className="text-xs font-medium">
+                            {opt.cost === 0 ? "Gratis" : formatARS(opt.cost)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Total */}
+            <div className="border-t border-border pt-4 mb-6">
+              {shippingOption && (
+                <div className="flex items-center justify-between mb-2 text-sm text-muted-foreground">
+                  <span>{shippingOption.label}</span>
+                  <span>{shippingOption.cost === 0 ? "Gratis" : formatARS(shippingOption.cost)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <p className="label-tag">TOTAL</p>
+                <p className="price-text text-xl">{formatARS(total)}</p>
+              </div>
+            </div>
 
             <Link href="/checkout" className="block w-full bg-brand-green text-brand-cream text-center py-4 font-bold tracking-widest text-sm hover:bg-green-mid transition-colors">
               FINALIZAR COMPRA

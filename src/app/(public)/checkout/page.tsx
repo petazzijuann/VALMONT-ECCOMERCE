@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatARS } from "@/lib/utils";
 import { PROVINCES } from "@/data/argentina";
-import type { EnvioOption } from "@/types";
 
 type PaymentMethod = "transfer" | "astropay";
-type QuoteStatus   = "idle" | "loading" | "done" | "error";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, totalPrice, clearCart } = useCartStore();
+  const { items, totalPrice, clearCart, shippingOption, totalWithShipping } = useCartStore();
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
@@ -21,22 +20,13 @@ export default function CheckoutPage() {
     customer_name:  "",
     customer_email: "",
     customer_phone: "",
-    street:       "",
-    city:         "",
-    province:     "",
-    province_code: "",
-    zip:          "",
+    street:   "",
+    city:     "",
+    province: "",
+    zip:      "",
   });
 
-  const [selectedShipping, setSelectedShipping] = useState<EnvioOption | null>(null);
-  const [quoteStatus,  setQuoteStatus]  = useState<QuoteStatus>("idle");
-  const [quoteOptions, setQuoteOptions] = useState<EnvioOption[]>([]);
-  const [quoteError,   setQuoteError]   = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const paymentMethod: PaymentMethod = "transfer";
-
-  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   if (items.length === 0) {
     return (
@@ -51,64 +41,6 @@ export default function CheckoutPage() {
 
   function setField(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
-  }
-
-  async function quoteShipping(cp: string, city: string, state: string) {
-    setQuoteStatus("loading");
-    setQuoteError("");
-    setSelectedShipping(null);
-    setQuoteOptions([]);
-    try {
-      const res  = await fetch("/api/shipping/quote", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          cp_destino:    cp.trim(),
-          city_destino:  city.trim(),
-          state_destino: state.trim(),
-          cart_items:    items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
-          subtotal:      totalPrice(),
-        }),
-      });
-      const data = await res.json() as { options: EnvioOption[]; error?: string };
-      if (data.error || !data.options?.length) {
-        setQuoteError(data.error ?? "No pudimos cotizar para ese CP.");
-        setQuoteStatus("error");
-        return;
-      }
-      setQuoteOptions(data.options);
-      setSelectedShipping(data.options[0]);
-      setQuoteStatus("done");
-    } catch {
-      setQuoteError("No pudimos cotizar. Intentá de nuevo.");
-      setQuoteStatus("error");
-    }
-  }
-
-  function triggerQuote(cp: string, city: string, state: string) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (cp.length >= 4 && city.length >= 2) {
-      debounceRef.current = setTimeout(() => quoteShipping(cp, city, state), 600);
-    } else {
-      setQuoteStatus("idle");
-      setQuoteOptions([]);
-      setSelectedShipping(null);
-    }
-  }
-
-  function handleZipChange(v: string) {
-    setField("zip", v);
-    triggerQuote(v, form.city, form.province_code);
-  }
-
-  function handleCityChange(v: string) {
-    setField("city", v);
-    if (form.zip.length >= 4) triggerQuote(form.zip, v, form.province_code);
-  }
-
-  function handleProvinceChange(name: string, code: string) {
-    setForm((f) => ({ ...f, province: name, province_code: code }));
-    if (form.zip.length >= 4 && form.city.length >= 2) triggerQuote(form.zip, form.city, code);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -138,14 +70,10 @@ export default function CheckoutPage() {
           qty:        i.quantity,
           price:      i.price,
         })),
-        payment_method:       paymentMethod,
-        shipping_method:      selectedShipping?.carrier_id       ?? null,
-        shipping_cost:        selectedShipping?.cost             ?? null,
-        shipping_cp:          form.zip                           || null,
-        shipping_days_label:  selectedShipping?.days_label       ?? null,
-        shipping_carrier:     selectedShipping?.carrier_id       ?? null,
-        shipping_carrier_name: selectedShipping?.carrier_name    ?? null,
-        shipping_service_id:  selectedShipping?.service_id      ?? null,
+        payment_method:      paymentMethod,
+        shipping_method:     shippingOption?.type      ?? null,
+        shipping_cost:       shippingOption?.cost      ?? null,
+        shipping_days_label: shippingOption?.days_label ?? null,
       }),
     });
 
@@ -165,10 +93,11 @@ export default function CheckoutPage() {
     }
   }
 
-  const inputClass = "w-full border border-border px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors bg-background";
-  const labelClass = "label-tag text-xs block mb-1.5";
-  const subtotal   = totalPrice();
-  const total      = subtotal + (selectedShipping?.cost ?? 0);
+  const inputClass  = "w-full border border-border px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors bg-background";
+  const selectClass = `${inputClass} appearance-none`;
+  const labelClass  = "label-tag text-xs block mb-1.5";
+  const subtotal    = totalPrice();
+  const total       = totalWithShipping();
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -178,6 +107,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Formulario */}
           <div className="lg:col-span-2 flex flex-col gap-8">
+
             {/* Datos personales */}
             <section>
               <h2 className="font-bebas text-2xl mb-5">DATOS PERSONALES</h2>
@@ -207,18 +137,15 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className={labelClass}>CIUDAD *</label>
-                  <input required value={form.city} onChange={(e) => handleCityChange(e.target.value)} className={inputClass} placeholder="Rosario" />
+                  <input required value={form.city} onChange={(e) => setField("city", e.target.value)} className={inputClass} placeholder="Rosario" />
                 </div>
                 <div>
                   <label className={labelClass}>PROVINCIA *</label>
                   <select
                     required
                     value={form.province}
-                    onChange={(e) => {
-                      const opt = PROVINCES.find((p) => p.name === e.target.value);
-                      handleProvinceChange(e.target.value, opt?.code ?? "");
-                    }}
-                    className={`${inputClass} appearance-none`}
+                    onChange={(e) => setField("province", e.target.value)}
+                    className={selectClass}
                   >
                     <option value="">Seleccioná tu provincia</option>
                     {PROVINCES.map((p) => (
@@ -231,7 +158,7 @@ export default function CheckoutPage() {
                   <input
                     required
                     value={form.zip}
-                    onChange={(e) => handleZipChange(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setField("zip", e.target.value.replace(/\D/g, ""))}
                     className={inputClass}
                     placeholder="2000"
                     maxLength={5}
@@ -244,50 +171,27 @@ export default function CheckoutPage() {
             {/* Envío */}
             <section>
               <h2 className="font-bebas text-2xl mb-5">ENVÍO</h2>
-
-              {quoteStatus === "idle" && (
-                <p className="text-sm text-muted-foreground">
-                  {form.zip.length >= 4 && (!form.city || !form.province_code)
-                    ? "Completá ciudad y provincia para calcular el envío."
-                    : "Completá ciudad, provincia y código postal para calcular el envío."}
-                </p>
-              )}
-
-              {quoteStatus === "loading" && (
-                <div className="flex flex-col gap-2">
-                  <div className="h-14 bg-muted animate-pulse" />
-                  <div className="h-14 bg-muted animate-pulse" />
+              {shippingOption ? (
+                <div className="border border-brand-green bg-brand-green/5 p-4 flex items-start gap-3">
+                  <Check size={16} className="text-brand-green mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">{shippingOption.label}</p>
+                    <p className="label-tag text-muted-foreground text-[10px] mt-0.5">
+                      {shippingOption.days_label} · {shippingOption.cost === 0 ? "Gratis" : formatARS(shippingOption.cost)}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-border p-4">
+                  <p className="text-sm text-muted-foreground">
+                    No seleccionaste un método de envío.{" "}
+                    <a href="/carrito" className="text-brand-green hover:underline">
+                      Volvé al carrito
+                    </a>{" "}
+                    para elegirlo.
+                  </p>
                 </div>
               )}
-
-              {quoteStatus === "error" && (
-                <p className="text-valmont-error text-xs label-tag">{quoteError}</p>
-              )}
-
-              {quoteStatus === "done" && quoteOptions.map((opt) => {
-                const sel = selectedShipping?.carrier_id === opt.carrier_id && selectedShipping?.service_id === opt.service_id;
-                return (
-                  <button
-                    key={`${opt.carrier_id}-${opt.service_id}`}
-                    type="button"
-                    onClick={() => setSelectedShipping(opt)}
-                    className={`w-full text-left border p-4 mb-2 transition-colors ${
-                      sel ? "border-brand-green bg-brand-green/5" : "border-border hover:border-brand-green/50"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={`mt-0.5 w-3 h-3 rounded-full border-2 shrink-0 ${sel ? "border-brand-green bg-brand-green" : "border-border"}`} />
-                      <div className="flex-1">
-                        <p className="label-tag text-xs">{opt.carrier_name}</p>
-                        <div className="flex items-center justify-between mt-0.5">
-                          <p className="text-muted-foreground text-xs">{opt.days_label}</p>
-                          <p className="text-sm font-medium">{formatARS(opt.cost)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
             </section>
 
             {/* Método de pago */}
@@ -313,7 +217,9 @@ export default function CheckoutPage() {
               <ul className="flex flex-col gap-3 mb-4">
                 {items.map((item) => (
                   <li key={`${item.product_id}-${item.size}-${item.color ?? ""}`} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{item.name} ({item.size}{item.color && item.color !== "Único" ? ` · ${item.color}` : ""}) ×{item.quantity}</span>
+                    <span className="text-muted-foreground">
+                      {item.name} ({item.size}{item.color && item.color !== "Único" ? ` · ${item.color}` : ""}) ×{item.quantity}
+                    </span>
                     <span>{formatARS(item.price * item.quantity)}</span>
                   </li>
                 ))}
@@ -324,10 +230,10 @@ export default function CheckoutPage() {
                 <span>{formatARS(subtotal)}</span>
               </div>
 
-              {selectedShipping && (
+              {shippingOption && (
                 <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-muted-foreground">{selectedShipping.carrier_name}</span>
-                  <span>{formatARS(selectedShipping.cost)}</span>
+                  <span className="text-muted-foreground">{shippingOption.label}</span>
+                  <span>{shippingOption.cost === 0 ? "Gratis" : formatARS(shippingOption.cost)}</span>
                 </div>
               )}
 

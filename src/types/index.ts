@@ -139,12 +139,11 @@ export interface CreateOrderResponse {
   transfer_info?: TransferInfo;
 }
 
-export interface EnvioOption {
-  carrier_id:   string;
-  carrier_name: string;
-  days_label:   string;
-  cost:         number;
-  service_id:   string;
+export interface ShippingOption {
+  type:       string;
+  label:      string;
+  days_label: string;
+  cost:       number;
 }
 
 export interface CartItem {
