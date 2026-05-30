@@ -113,5 +113,5 @@ bot.on("callback_query", async (ctx) => {
     return handleSaleCallback(ctx);
   }
 
-  await ctx.answerCbQuery();
+  await ctx.answerCbQuery().catch(() => null);
 });

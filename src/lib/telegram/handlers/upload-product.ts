@@ -356,7 +356,7 @@ export async function handleCallback(ctx: Context) {
   const session = await getSession(chatId);
   const data    = (ctx as { callbackQuery?: { data?: string } }).callbackQuery?.data ?? "";
 
-  await ctx.answerCbQuery();
+  await ctx.answerCbQuery().catch(() => null);
 
   // Selección de categoría
   if (data.startsWith("cat:")) {

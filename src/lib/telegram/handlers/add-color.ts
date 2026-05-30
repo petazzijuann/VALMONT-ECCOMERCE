@@ -157,7 +157,7 @@ export async function handleAddColorCallback(ctx: Context) {
   const session = await getSession(chatId);
   const data    = (ctx as { callbackQuery?: { data?: string } }).callbackQuery?.data ?? "";
 
-  await ctx.answerCbQuery();
+  await ctx.answerCbQuery().catch(() => null);
 
   if (data.startsWith("addcolor_product:")) {
     if (session.state !== "addcolor_waiting_product_choice") return;

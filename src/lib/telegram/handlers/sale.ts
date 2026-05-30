@@ -110,7 +110,7 @@ export async function handleSaleCallback(ctx: Context) {
   const session = await getSession(chatId);
   const data = (ctx as { callbackQuery?: { data?: string } }).callbackQuery?.data ?? "";
 
-  await ctx.answerCbQuery();
+  await ctx.answerCbQuery().catch(() => null);
 
   // ── Producto seleccionado ────────────────────────────────────────────────
   if (data.startsWith("product:")) {
