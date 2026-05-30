@@ -2,6 +2,7 @@ import type { Context } from "telegraf";
 import { prisma } from "@/lib/prisma/client";
 import { getSession, setSession, clearSession } from "../state";
 import { formatARS } from "@/lib/utils";
+import type { ColorVariant } from "@/types";
 
 const PAYMENT_KEYBOARD = {
   inline_keyboard: [
@@ -111,50 +112,124 @@ export async function handleSaleCallback(ctx: Context) {
 
   await ctx.answerCbQuery();
 
+  // ── Producto seleccionado ────────────────────────────────────────────────
   if (data.startsWith("product:")) {
     const productId = data.replace("product:", "");
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, name: true, price_sale: true, price_cost: true, stock: true },
+      select: { id: true, name: true, price_sale: true, price_cost: true, stock: true, color_variants: true },
     });
     if (!product) return;
 
-    const stock = product.stock as Record<string, number>;
-    const available = Object.entries(stock).filter(([, qty]) => qty > 0);
+    const colorVariants = product.color_variants as unknown as ColorVariant[];
+    const isMultiColor  = colorVariants.length > 0 && colorVariants[0].name !== "Único";
+
+    const baseSaleData = {
+      product_id:      product.id,
+      product_name:    product.name,
+      product_cost:    Number(product.price_cost),
+      suggested_price: Number(product.price_sale),
+    };
+
+    if (isMultiColor) {
+      const withStock = colorVariants.filter(v =>
+        Object.values(v.stock).some(qty => qty > 0)
+      );
+
+      if (withStock.length === 0) {
+        await ctx.reply("❌ Este producto no tiene stock disponible en ningún color.");
+        await clearSession(chatId);
+        return;
+      }
+
+      await setSession(chatId, { ...session, state: "sale_waiting_color", saleData: baseSaleData });
+      await ctx.reply(
+        `Producto: *${product.name}*\n\n🎨 ¿Qué color vendiste?`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: withStock.map(v => [{
+              text: v.name,
+              callback_data: `color:${v.name}`,
+            }]),
+          },
+        }
+      );
+    } else {
+      const stock     = product.stock as Record<string, number>;
+      const available = Object.entries(stock).filter(([, qty]) => qty > 0);
+
+      if (available.length === 0) {
+        await ctx.reply("❌ Este producto no tiene stock disponible.");
+        await clearSession(chatId);
+        return;
+      }
+
+      await setSession(chatId, { ...session, state: "sale_waiting_size", saleData: baseSaleData });
+      await ctx.reply(
+        `Producto: *${product.name}*\n\n📐 ¿Qué talle?`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              available.map(([size, qty]) => ({
+                text: `${size} (${qty})`,
+                callback_data: `size:${size}`,
+              })),
+            ],
+          },
+        }
+      );
+    }
+    return;
+  }
+
+  // ── Color seleccionado ───────────────────────────────────────────────────
+  if (data.startsWith("color:")) {
+    if (session.state !== "sale_waiting_color") return;
+    const colorName = data.replace("color:", "");
+
+    const product = await prisma.product.findUnique({
+      where: { id: session.saleData!.product_id! },
+      select: { color_variants: true },
+    });
+    if (!product) return;
+
+    const colorVariants = product.color_variants as unknown as ColorVariant[];
+    const variant = colorVariants.find(v => v.name === colorName);
+    if (!variant) return;
+
+    const available = Object.entries(variant.stock).filter(([, qty]) => qty > 0);
 
     if (available.length === 0) {
-      await ctx.reply("❌ Este producto no tiene stock disponible.");
+      await ctx.reply(`❌ El color *${colorName}* no tiene stock disponible.`, { parse_mode: "Markdown" });
       await clearSession(chatId);
       return;
     }
 
-    const sizeKeyboard = {
-      inline_keyboard: [
-        available.map(([size, qty]) => ({
-          text: `${size} (${qty})`,
-          callback_data: `size:${size}`,
-        })),
-      ],
-    };
-
     await setSession(chatId, {
       ...session,
       state: "sale_waiting_size",
-      saleData: {
-        product_id:      product.id,
-        product_name:    product.name,
-        product_cost:    Number(product.price_cost),
-        suggested_price: Number(product.price_sale),
-      },
+      saleData: { ...session.saleData, color: colorName },
     });
-
     await ctx.reply(
-      `Producto: *${product.name}*\n\n📐 ¿Qué talle?`,
-      { parse_mode: "Markdown", reply_markup: sizeKeyboard }
+      `Color: *${colorName}*\n\n📐 ¿Qué talle?`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [
+            available.map(([size, qty]) => ({
+              text: `${size} (${qty})`,
+              callback_data: `size:${size}`,
+            })),
+          ],
+        },
+      }
     );
     return;
   }
 
+  // ── Talle seleccionado ───────────────────────────────────────────────────
   if (data.startsWith("size:")) {
     if (session.state !== "sale_waiting_size") return;
     const size = data.replace("size:", "");
@@ -163,12 +238,11 @@ export async function handleSaleCallback(ctx: Context) {
       state: "sale_waiting_quantity",
       saleData: { ...session.saleData, size },
     });
-    await ctx.reply(`Talle: *${size}*\n\n📦 ¿Cuántas unidades?`, {
-      parse_mode: "Markdown",
-    });
+    await ctx.reply(`Talle: *${size}*\n\n📦 ¿Cuántas unidades?`, { parse_mode: "Markdown" });
     return;
   }
 
+  // ── Método de pago ───────────────────────────────────────────────────────
   if (data.startsWith("pay:")) {
     if (session.state !== "sale_waiting_payment") return;
     const payment_method = data.replace("pay:", "");
@@ -179,9 +253,11 @@ export async function handleSaleCallback(ctx: Context) {
 
     await setSession(chatId, { state: "sale_confirming", saleData: d });
 
+    const colorLine = d.color ? `🎨 Color: ${d.color}\n` : "";
     await ctx.reply(
       `*Vista previa de venta:*\n\n` +
       `📌 ${d.product_name}\n` +
+      colorLine +
       `📐 Talle: ${d.size} × ${d.quantity} u.\n` +
       `💰 Precio: ${formatARS(d.sale_price!)}\n` +
       `💵 Total: ${formatARS(d.sale_price! * d.quantity!)}\n` +
@@ -200,25 +276,66 @@ export async function handleSaleCallback(ctx: Context) {
     return;
   }
 
+  // ── Confirmar venta ──────────────────────────────────────────────────────
   if (data === "sale:confirm") {
     if (session.state !== "sale_confirming") return;
     const d = session.saleData!;
 
     const product = await prisma.product.findUnique({
       where: { id: d.product_id! },
-      select: { price_cost: true, stock: true },
+      select: { price_cost: true, stock: true, color_variants: true },
     });
     if (!product) return;
 
-    const stock = product.stock as Record<string, number>;
-    const currentQty = stock[d.size!] ?? 0;
+    const colorVariants = product.color_variants as unknown as ColorVariant[];
+    const isMultiColor  = colorVariants.length > 0 && colorVariants[0].name !== "Único";
 
-    if (currentQty < d.quantity!) {
-      await ctx.reply(
-        `❌ Stock insuficiente. Quedan ${currentQty} u. de talle ${d.size}.`
+    let updatedStock: Record<string, number>;
+    let updatedVariants: ColorVariant[];
+
+    if (isMultiColor && d.color) {
+      const idx = colorVariants.findIndex(v => v.name === d.color);
+      if (idx === -1) {
+        await ctx.reply("❌ Error interno: color no encontrado.");
+        await clearSession(chatId);
+        return;
+      }
+
+      const variant    = colorVariants[idx];
+      const currentQty = variant.stock[d.size!] ?? 0;
+
+      if (currentQty < d.quantity!) {
+        await ctx.reply(
+          `❌ Stock insuficiente. Quedan ${currentQty} u. de *${d.color}* talle ${d.size}.`,
+          { parse_mode: "Markdown" }
+        );
+        await clearSession(chatId);
+        return;
+      }
+
+      updatedVariants = colorVariants.map((v, i) =>
+        i === idx
+          ? { ...v, stock: { ...v.stock, [d.size!]: currentQty - d.quantity! } }
+          : v
       );
-      await clearSession(chatId);
-      return;
+      // product.stock siempre refleja el primer color
+      updatedStock = idx === 0
+        ? updatedVariants[0].stock
+        : (product.stock as Record<string, number>);
+    } else {
+      const stock      = product.stock as Record<string, number>;
+      const currentQty = stock[d.size!] ?? 0;
+
+      if (currentQty < d.quantity!) {
+        await ctx.reply(`❌ Stock insuficiente. Quedan ${currentQty} u. de talle ${d.size}.`);
+        await clearSession(chatId);
+        return;
+      }
+
+      updatedStock    = { ...stock, [d.size!]: currentQty - d.quantity! };
+      updatedVariants = colorVariants.map(v =>
+        v.name === "Único" ? { ...v, stock: updatedStock } : v
+      );
     }
 
     await prisma.$transaction([
@@ -236,14 +353,18 @@ export async function handleSaleCallback(ctx: Context) {
       }),
       prisma.product.update({
         where: { id: d.product_id! },
-        data: { stock: { ...stock, [d.size!]: currentQty - d.quantity! } },
+        data: {
+          stock:          updatedStock,
+          color_variants: updatedVariants as object[],
+        },
       }),
     ]);
 
     await clearSession(chatId);
+    const colorLine = d.color ? ` (${d.color})` : "";
     await ctx.reply(
       `✅ *Venta registrada*\n\n` +
-      `${d.product_name} — ${d.size} × ${d.quantity}\n` +
+      `${d.product_name}${colorLine} — ${d.size} × ${d.quantity}\n` +
       `Total: *${formatARS(d.sale_price! * d.quantity!)}*\n` +
       `Pago: ${d.payment_method}`,
       { parse_mode: "Markdown" }
@@ -251,6 +372,7 @@ export async function handleSaleCallback(ctx: Context) {
     return;
   }
 
+  // ── Cancelar ─────────────────────────────────────────────────────────────
   if (data === "sale:cancel") {
     await clearSession(chatId);
     await ctx.reply("❌ Venta cancelada.");

@@ -19,6 +19,7 @@ export type BotState =
   | "upload_waiting_weight"
   | "upload_confirming"
   | "sale_waiting_search"
+  | "sale_waiting_color"
   | "sale_waiting_size"
   | "sale_waiting_quantity"
   | "sale_waiting_price"
@@ -66,6 +67,7 @@ export interface SaleData {
   product_name?:    string;
   product_cost?:    number;
   suggested_price?: number;
+  color?:           string;
   size?:            string;
   quantity?:        number;
   sale_price?:      number;
