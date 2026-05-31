@@ -35,7 +35,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
   },
   robots: { index: true, follow: true },
-  icons:  { icon: "/logo.png" },
 };
 
 export default function RootLayout({
