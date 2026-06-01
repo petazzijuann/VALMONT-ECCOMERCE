@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Pencil, Trash2, Download } from "lucide-react";
 import useSWR from "swr";
 import type { ProductAdmin, StockMap, ColorVariant } from "@/types";
 import { formatARS, calculateMargin } from "@/lib/utils";
+import { downloadCSV, downloadXLSX } from "@/lib/export/products";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import EditProductSheet from "./EditProductSheet";
 
@@ -30,6 +31,8 @@ export default function ProductsTable() {
     "/api/admin/products",
     fetcher
   );
+  const [exportOpen,  setExportOpen]  = useState(false);
+  const exportRef                     = useRef<HTMLDivElement>(null);
   const [toggling,    setToggling]    = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<ProductAdmin | null>(null);
   const [editOpen,    setEditOpen]    = useState(false);
@@ -81,11 +84,51 @@ export default function ProductsTable() {
     setDeleteProduct(null);
   }
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    if (exportOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [exportOpen]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-tag text-muted-foreground text-[10px] mb-1">GESTIÓN</p>
-        <h1 className="font-bebas text-5xl">PRODUCTOS</h1>
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="label-tag text-muted-foreground text-[10px] mb-1">GESTIÓN</p>
+          <h1 className="font-bebas text-5xl">PRODUCTOS</h1>
+        </div>
+
+        {/* Botón Exportar */}
+        <div ref={exportRef} className="relative shrink-0">
+          <button
+            onClick={() => setExportOpen((v) => !v)}
+            disabled={isLoading}
+            className="label-tag text-[11px] px-5 py-3 bg-brand-green text-brand-cream hover:bg-green-mid transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            <Download size={13} />
+            EXPORTAR ▾
+          </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border shadow-md min-w-[140px]">
+              <button
+                onClick={() => { downloadCSV(products ?? []); setExportOpen(false); }}
+                className="label-tag text-[11px] w-full text-left px-4 py-3 hover:bg-muted transition-colors"
+              >
+                CSV
+              </button>
+              <button
+                onClick={() => { downloadXLSX(products ?? []).catch(console.error); setExportOpen(false); }}
+                className="label-tag text-[11px] w-full text-left px-4 py-3 hover:bg-muted transition-colors"
+              >
+                Excel (XLSX)
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Toast */}

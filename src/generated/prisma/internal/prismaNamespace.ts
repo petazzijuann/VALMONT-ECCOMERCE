@@ -922,6 +922,7 @@ export const SaleScalarFieldEnum = {
   product_id: 'product_id',
   product_name: 'product_name',
   size: 'size',
+  color: 'color',
   quantity: 'quantity',
   sale_price: 'sale_price',
   cost_price: 'cost_price',
