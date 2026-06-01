@@ -57,6 +57,7 @@ export async function fulfillOrder(orderId: string, paymentMethod: string) {
         product_id:     item.product_id,
         product_name:   item.name,
         size:           item.size,
+        color:          item.color ?? null,
         quantity:       item.qty,
         sale_price:     item.price,
         cost_price:     product.price_cost,

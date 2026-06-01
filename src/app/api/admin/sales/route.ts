@@ -34,12 +34,13 @@ export async function GET(request: NextRequest) {
   }));
 
   if (format === "csv") {
-    const header = "id,fecha,producto,talle,cantidad,precio_venta,precio_costo,canal,pago,cliente,email,telefono";
+    const header = "id,fecha,producto,color,talle,cantidad,precio_venta,precio_costo,canal,pago,cliente,email,telefono";
     const rows = serialized.map((s) =>
       [
         s.id,
         s.created_at.slice(0, 10),
         `"${s.product_name.replace(/"/g, '""')}"`,
+        s.color ?? "",
         s.size,
         s.quantity,
         s.sale_price,

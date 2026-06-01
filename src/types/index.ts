@@ -87,6 +87,7 @@ export interface SaleRecord {
   product_id: string;
   product_name: string;
   size: string;
+  color: string | null;
   quantity: number;
   sale_price: number;
   cost_price: number;

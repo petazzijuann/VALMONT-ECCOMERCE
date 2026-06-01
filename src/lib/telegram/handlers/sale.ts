@@ -344,6 +344,7 @@ export async function handleSaleCallback(ctx: Context) {
           product_id:     d.product_id!,
           product_name:   d.product_name!,
           size:           d.size!,
+          color:          d.color ?? null,
           quantity:       d.quantity!,
           sale_price:     d.sale_price!,
           cost_price:     Number(product.price_cost),

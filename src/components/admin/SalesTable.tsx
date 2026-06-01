@@ -28,7 +28,7 @@ function MarginBadge({ sale, cost }: { sale: number; cost: number }) {
 }
 
 const HEADERS = [
-  "FECHA", "PRODUCTO", "TALLE", "U.",
+  "FECHA", "PRODUCTO", "COLOR", "TALLE", "U.",
   "PRECIO", "COSTO", "MARGEN", "CANAL", "PAGO", "CLIENTE", "",
 ];
 
@@ -127,7 +127,7 @@ export default function SalesTable() {
                 ))
               : sales?.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                    <td colSpan={12} className="px-4 py-8 text-center text-muted-foreground text-sm">
                       No hay ventas registradas todavía.
                     </td>
                   </tr>
@@ -143,6 +143,9 @@ export default function SalesTable() {
                       })}
                     </td>
                     <td className="px-4 py-3 font-medium max-w-[180px] truncate">{s.product_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {s.color ?? <span className="text-muted-foreground/40">—</span>}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{s.size}</td>
                     <td className="px-4 py-3 text-muted-foreground">{s.quantity}</td>
                     <td className="px-4 py-3">{formatARS(s.sale_price)}</td>

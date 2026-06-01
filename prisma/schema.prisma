@@ -38,6 +38,7 @@ model Sale {
   product_id     String
   product_name   String
   size           String
+  color          String?
   quantity       Int
   sale_price     Decimal  @db.Decimal(10, 2)
   cost_price     Decimal  @db.Decimal(10, 2)
