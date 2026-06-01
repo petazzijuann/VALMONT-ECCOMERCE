@@ -106,6 +106,7 @@ bot.on("callback_query", async (ctx) => {
   }
   if (
     data.startsWith("product:") ||
+    data.startsWith("color:") ||
     data.startsWith("size:") ||
     data.startsWith("pay:") ||
     data.startsWith("sale:")

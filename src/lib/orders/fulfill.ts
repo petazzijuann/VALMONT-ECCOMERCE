@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma/client";
 import { crearOrdenEnvio } from "@/lib/andreani/client";
-import type { OrderItem, StockMap, CustomerAddress } from "@/types";
+import type { OrderItem, StockMap, CustomerAddress, ColorVariant } from "@/types";
 
 export async function reserveStock(orderId: string) {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
@@ -9,12 +9,34 @@ export async function reserveStock(orderId: string) {
   for (const item of items) {
     const product = await prisma.product.findUnique({
       where: { id: item.product_id },
-      select: { stock: true },
+      select: { stock: true, color_variants: true },
     });
     if (!product) continue;
-    const stock = product.stock as StockMap;
-    stock[item.size] = Math.max(0, (stock[item.size] ?? 0) - item.qty);
-    await prisma.product.update({ where: { id: item.product_id }, data: { stock } });
+
+    const colorVariants = product.color_variants as unknown as ColorVariant[];
+    const isMultiColor = colorVariants.length > 0 && colorVariants[0].name !== "Único";
+
+    if (isMultiColor && item.color) {
+      const idx = colorVariants.findIndex(v => v.name === item.color);
+      if (idx === -1) continue;
+      const currentQty = colorVariants[idx].stock[item.size] ?? 0;
+      const updatedVariants = colorVariants.map((v, i) =>
+        i === idx
+          ? { ...v, stock: { ...v.stock, [item.size]: Math.max(0, currentQty - item.qty) } }
+          : v
+      );
+      const updatedStock = idx === 0
+        ? updatedVariants[0].stock
+        : (product.stock as StockMap);
+      await prisma.product.update({
+        where: { id: item.product_id },
+        data: { stock: updatedStock, color_variants: updatedVariants as object[] },
+      });
+    } else {
+      const stock = product.stock as StockMap;
+      stock[item.size] = Math.max(0, (stock[item.size] ?? 0) - item.qty);
+      await prisma.product.update({ where: { id: item.product_id }, data: { stock } });
+    }
   }
 }
 
@@ -85,12 +107,34 @@ export async function releaseStock(orderId: string) {
   for (const item of items) {
     const product = await prisma.product.findUnique({
       where: { id: item.product_id },
-      select: { stock: true },
+      select: { stock: true, color_variants: true },
     });
     if (!product) continue;
-    const stock = product.stock as StockMap;
-    stock[item.size] = (stock[item.size] ?? 0) + item.qty;
-    await prisma.product.update({ where: { id: item.product_id }, data: { stock } });
+
+    const colorVariants = product.color_variants as unknown as ColorVariant[];
+    const isMultiColor = colorVariants.length > 0 && colorVariants[0].name !== "Único";
+
+    if (isMultiColor && item.color) {
+      const idx = colorVariants.findIndex(v => v.name === item.color);
+      if (idx === -1) continue;
+      const currentQty = colorVariants[idx].stock[item.size] ?? 0;
+      const updatedVariants = colorVariants.map((v, i) =>
+        i === idx
+          ? { ...v, stock: { ...v.stock, [item.size]: currentQty + item.qty } }
+          : v
+      );
+      const updatedStock = idx === 0
+        ? updatedVariants[0].stock
+        : (product.stock as StockMap);
+      await prisma.product.update({
+        where: { id: item.product_id },
+        data: { stock: updatedStock, color_variants: updatedVariants as object[] },
+      });
+    } else {
+      const stock = product.stock as StockMap;
+      stock[item.size] = (stock[item.size] ?? 0) + item.qty;
+      await prisma.product.update({ where: { id: item.product_id }, data: { stock } });
+    }
   }
   await prisma.order.update({ where: { id: orderId }, data: { status: "cancelled" } });
 }
