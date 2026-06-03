@@ -1,24 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-
-async function isAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  return !!user;
-}
 
 export async function GET(request: NextRequest) {
-  if (!(await isAuthenticated())) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
-
   const format = request.nextUrl.searchParams.get("format");
 
   const subscribers = await prisma.subscriber.findMany({
