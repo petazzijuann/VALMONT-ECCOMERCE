@@ -11,6 +11,7 @@
 export type * from './models/Product'
 export type * from './models/Sale'
 export type * from './models/Order'
+export type * from './models/Coupon'
 export type * from './models/ContactMessage'
 export type * from './models/Subscriber'
 export type * from './models/TelegramSession'

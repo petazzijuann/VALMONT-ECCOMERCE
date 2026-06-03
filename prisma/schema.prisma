@@ -82,12 +82,31 @@ model Order {
   andreani_tracking_id String?
   andreani_order_id    String?
 
+  coupon_code      String?
+  discount_amount  Decimal?  @db.Decimal(12, 2)
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   sales Sale[]
 
   @@map("orders")
+}
+
+model Coupon {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  type         String
+  value        Decimal?  @db.Decimal(10, 2)
+  stock        Int
+  used_count   Int       @default(0)
+  min_purchase Decimal?  @db.Decimal(12, 2)
+  is_active    Boolean   @default(true)
+  expires_at   DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  @@map("coupons")
 }
 
 model ContactMessage {

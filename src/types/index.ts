@@ -125,6 +125,27 @@ export interface DashboardMetrics {
   }>;
 }
 
+export interface CouponPublic {
+  id: string;
+  code: string;
+  type: "percent" | "fixed" | "free_shipping";
+  value: number | null;
+  stock: number;
+  used_count: number;
+  min_purchase: number | null;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CouponValidated {
+  code: string;
+  type: "percent" | "fixed" | "free_shipping";
+  value: number | null;
+  discount_amount: number;
+}
+
 export interface TransferInfo {
   cbu: string;
   alias: string;

@@ -34,6 +34,9 @@ const orderSchema = z.object({
   shipping_carrier:     z.string().nullable().optional(),
   shipping_carrier_name: z.string().nullable().optional(),
   shipping_service_id:  z.string().nullable().optional(),
+
+  coupon_code:      z.string().optional().nullable(),
+  discount_amount:  z.number().optional().nullable(),
 });
 
 export async function POST(request: NextRequest) {
@@ -43,10 +46,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data          = parsed.data;
-  const subtotal      = data.items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const shippingCost  = data.shipping_cost ?? 0;
-  const total         = subtotal + shippingCost;
+  const data     = parsed.data;
+  const subtotal = data.items.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  // Coupon re-validation server-side
+  let discountAmount  = 0;
+  let appliedCoupon: Awaited<ReturnType<typeof prisma.coupon.findUnique>> = null;
+
+  if (data.coupon_code) {
+    const coupon = await prisma.coupon.findUnique({
+      where: { code: data.coupon_code.toUpperCase() },
+    });
+    if (
+      coupon &&
+      coupon.is_active &&
+      coupon.stock > 0 &&
+      (!coupon.expires_at || coupon.expires_at > new Date()) &&
+      (!coupon.min_purchase || subtotal >= Number(coupon.min_purchase))
+    ) {
+      if (coupon.type === "percent") {
+        discountAmount = Math.floor(subtotal * Number(coupon.value) / 100);
+      } else if (coupon.type === "fixed") {
+        discountAmount = Math.min(Number(coupon.value), subtotal);
+      }
+      appliedCoupon = coupon;
+    }
+  }
+
+  const shippingCost  = (appliedCoupon?.type === "free_shipping") ? 0 : (data.shipping_cost ?? 0);
+  const total         = subtotal - discountAmount + shippingCost;
 
   const order = await prisma.order.create({
     data: {
@@ -66,8 +94,19 @@ export async function POST(request: NextRequest) {
       shipping_carrier:     data.shipping_carrier     ?? null,
       shipping_carrier_name: data.shipping_carrier_name ?? null,
       shipping_service_id:  data.shipping_service_id  ?? null,
+
+      coupon_code:      appliedCoupon?.code      ?? null,
+      discount_amount:  discountAmount > 0 ? discountAmount : null,
     },
   });
+
+  // Atomic coupon stock decrement
+  if (appliedCoupon) {
+    await prisma.coupon.updateMany({
+      where: { id: appliedCoupon.id, stock: { gt: 0 } },
+      data:  { stock: { decrement: 1 }, used_count: { increment: 1 } },
+    });
+  }
 
   await reserveStock(order.id);
 

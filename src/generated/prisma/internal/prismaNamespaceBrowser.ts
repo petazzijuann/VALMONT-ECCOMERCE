@@ -54,6 +54,7 @@ export const ModelName = {
   Product: 'Product',
   Sale: 'Sale',
   Order: 'Order',
+  Coupon: 'Coupon',
   ContactMessage: 'ContactMessage',
   Subscriber: 'Subscriber',
   TelegramSession: 'TelegramSession'
@@ -140,11 +141,30 @@ export const OrderScalarFieldEnum = {
   shipping_service_id: 'shipping_service_id',
   andreani_tracking_id: 'andreani_tracking_id',
   andreani_order_id: 'andreani_order_id',
+  coupon_code: 'coupon_code',
+  discount_amount: 'discount_amount',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
 
 export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
+
+
+export const CouponScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  type: 'type',
+  value: 'value',
+  stock: 'stock',
+  used_count: 'used_count',
+  min_purchase: 'min_purchase',
+  is_active: 'is_active',
+  expires_at: 'expires_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type CouponScalarFieldEnum = (typeof CouponScalarFieldEnum)[keyof typeof CouponScalarFieldEnum]
 
 
 export const ContactMessageScalarFieldEnum = {

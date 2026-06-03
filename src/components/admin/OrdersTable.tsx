@@ -22,6 +22,8 @@ interface AdminOrder {
   shipping_days_label:   string | null;
   shipping_carrier_name: string | null;
   andreani_tracking_id:  string | null;
+  coupon_code:           string | null;
+  discount_amount:       number | null;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json() as Promise<AdminOrder[]>);
@@ -150,6 +152,14 @@ export default function OrdersTable() {
                     </li>
                   ))}
                 </ul>
+
+                {/* Cupón */}
+                {order.coupon_code && (
+                  <p className="text-xs text-brand-green label-tag">
+                    🏷 {order.coupon_code}
+                    {order.discount_amount ? ` (−${formatARS(order.discount_amount)})` : ""}
+                  </p>
+                )}
 
                 {/* Envío y tracking */}
                 {order.shipping_method && (

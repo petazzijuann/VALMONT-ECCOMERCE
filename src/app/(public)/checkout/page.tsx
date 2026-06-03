@@ -6,15 +6,21 @@ import { Check } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatARS } from "@/lib/utils";
 import { PROVINCES } from "@/data/argentina";
+import type { CouponValidated } from "@/types";
 
 type PaymentMethod = "transfer" | "astropay";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, totalPrice, clearCart, shippingOption, totalWithShipping } = useCartStore();
+  const { items, totalPrice, clearCart, shippingOption } = useCartStore();
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+
+  const [coupon,       setCoupon]       = useState<CouponValidated | null>(null);
+  const [couponInput,  setCouponInput]  = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError,  setCouponError]  = useState("");
 
   const [form, setForm] = useState({
     customer_name:  "",
@@ -74,6 +80,8 @@ export default function CheckoutPage() {
         shipping_method:     shippingOption?.type      ?? null,
         shipping_cost:       shippingOption?.cost      ?? null,
         shipping_days_label: shippingOption?.days_label ?? null,
+        coupon_code:         coupon?.code              ?? null,
+        discount_amount:     coupon?.discount_amount   ?? null,
       }),
     });
 
@@ -93,11 +101,51 @@ export default function CheckoutPage() {
     }
   }
 
+  async function handleApplyCoupon() {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ code: couponInput.toUpperCase(), subtotal: totalPrice() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg =
+          data.error === "not_found"    ? "Cupón no encontrado" :
+          data.error === "inactive" || data.error === "out_of_stock" || data.error === "expired"
+                                        ? "Este cupón ya no está disponible" :
+          data.error === "min_purchase" ? `Este cupón requiere una compra mínima de ${formatARS(data.min)}` :
+                                          "No pudimos validar el cupón, intentá de nuevo";
+        setCouponError(msg);
+      } else {
+        setCoupon(data as CouponValidated);
+        setCouponInput("");
+      }
+    } catch {
+      setCouponError("No pudimos validar el cupón, intentá de nuevo");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setCoupon(null);
+    setCouponInput("");
+    setCouponError("");
+  }
+
   const inputClass  = "w-full border border-border px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors bg-background";
   const selectClass = `${inputClass} appearance-none`;
   const labelClass  = "label-tag text-xs block mb-1.5";
   const subtotal    = totalPrice();
-  const total       = totalWithShipping();
+  const discountOnSubtotal = coupon ? coupon.discount_amount : 0;
+  const shippingCost       = coupon?.type === "free_shipping"
+    ? 0
+    : (shippingOption?.cost ?? 0);
+  const total = subtotal - discountOnSubtotal + shippingCost;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -230,12 +278,61 @@ export default function CheckoutPage() {
                 <span>{formatARS(subtotal)}</span>
               </div>
 
-              {shippingOption && (
-                <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-muted-foreground">{shippingOption.label}</span>
-                  <span>{shippingOption.cost === 0 ? "Gratis" : formatARS(shippingOption.cost)}</span>
+              {coupon && coupon.type !== "free_shipping" && (
+                <div className="flex items-center justify-between text-sm mb-1 text-valmont-success">
+                  <span>Descuento {coupon.type === "percent" ? `−${coupon.value}%` : "cupón"}</span>
+                  <span>−{formatARS(coupon.discount_amount)}</span>
                 </div>
               )}
+
+              {shippingOption && (
+                <div className="flex items-center justify-between text-sm mb-3">
+                  <span className="text-muted-foreground">
+                    {coupon?.type === "free_shipping"
+                      ? `${shippingOption.label} (gratis)`
+                      : shippingOption.label}
+                  </span>
+                  <span className={coupon?.type === "free_shipping" ? "text-valmont-success" : ""}>
+                    {shippingCost === 0 ? "Gratis" : formatARS(shippingCost)}
+                  </span>
+                </div>
+              )}
+
+              {/* Cupón */}
+              <div className="border-t border-border pt-4 mb-4">
+                {coupon ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-valmont-success label-tag text-[11px]">✓ Cupón aplicado: {coupon.code}</span>
+                    <button onClick={removeCoupon} className="label-tag text-[10px] text-muted-foreground hover:text-foreground underline">
+                      Quitar
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">¿Tenés un cupón de descuento?</p>
+                    <div className="flex gap-2">
+                      <input
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                        disabled={couponLoading}
+                        className="flex-1 border border-border px-3 py-2 text-sm focus:outline-none focus:border-brand-green bg-background disabled:opacity-50"
+                        placeholder="CÓDIGO DE CUPÓN"
+                      />
+                      <button
+                        onClick={handleApplyCoupon}
+                        disabled={couponLoading || !couponInput}
+                        className="label-tag text-[11px] px-4 py-2 bg-brand-green text-brand-cream hover:bg-green-mid transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        {couponLoading ? "..." : "Aplicar"}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="label-tag text-valmont-error text-[10px] mt-1.5">{couponError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="border-t border-border pt-3 flex items-center justify-between mb-6">
                 <p className="label-tag">TOTAL</p>
