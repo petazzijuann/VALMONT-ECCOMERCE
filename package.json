@@ -14,7 +14,8 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "webhook:register": "node --env-file=.env.local scripts/register-webhook.mjs",
-    "webhook:delete": "node --env-file=.env.local scripts/delete-webhook.mjs"
+    "webhook:delete": "node --env-file=.env.local scripts/delete-webhook.mjs",
+    "prode:seed": "node --env-file=.env.local scripts/seed-prode.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

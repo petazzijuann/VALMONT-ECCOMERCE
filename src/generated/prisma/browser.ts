@@ -52,3 +52,23 @@ export type Subscriber = Prisma.SubscriberModel
  * 
  */
 export type TelegramSession = Prisma.TelegramSessionModel
+/**
+ * Model ProdePlayer
+ * 
+ */
+export type ProdePlayer = Prisma.ProdePlayerModel
+/**
+ * Model ProdeMatch
+ * 
+ */
+export type ProdeMatch = Prisma.ProdeMatchModel
+/**
+ * Model ProdeMatchPrediction
+ * 
+ */
+export type ProdeMatchPrediction = Prisma.ProdeMatchPredictionModel
+/**
+ * Model ProdeSettings
+ * 
+ */
+export type ProdeSettings = Prisma.ProdeSettingsModel

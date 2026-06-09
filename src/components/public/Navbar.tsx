@@ -180,6 +180,10 @@ export default function Navbar() {
                 </div>
               </div>
 
+              <Link href="/prode" className="label-tag text-cream-dark hover:text-brand-cream transition-colors">
+                PRODE MUNDIAL
+              </Link>
+
               <Link href="/contacto" className="label-tag text-cream-dark hover:text-brand-cream transition-colors">
                 CONTACTO
               </Link>
@@ -288,9 +292,16 @@ export default function Navbar() {
             </Link>
           ))}
           <Link
-            href="/contacto"
+            href="/prode"
             onClick={() => setMenuOpen(false)}
             className="label-tag text-cream-dark block py-2 mt-1 hover:text-brand-cream transition-colors"
+          >
+            PRODE MUNDIAL
+          </Link>
+          <Link
+            href="/contacto"
+            onClick={() => setMenuOpen(false)}
+            className="label-tag text-cream-dark block py-2 hover:text-brand-cream transition-colors"
           >
             CONTACTO
           </Link>

@@ -57,7 +57,11 @@ export const ModelName = {
   Coupon: 'Coupon',
   ContactMessage: 'ContactMessage',
   Subscriber: 'Subscriber',
-  TelegramSession: 'TelegramSession'
+  TelegramSession: 'TelegramSession',
+  ProdePlayer: 'ProdePlayer',
+  ProdeMatch: 'ProdeMatch',
+  ProdeMatchPrediction: 'ProdeMatchPrediction',
+  ProdeSettings: 'ProdeSettings'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -197,6 +201,65 @@ export const TelegramSessionScalarFieldEnum = {
 } as const
 
 export type TelegramSessionScalarFieldEnum = (typeof TelegramSessionScalarFieldEnum)[keyof typeof TelegramSessionScalarFieldEnum]
+
+
+export const ProdePlayerScalarFieldEnum = {
+  id: 'id',
+  instagram: 'instagram',
+  email: 'email',
+  password_hash: 'password_hash',
+  champion: 'champion',
+  runner_up: 'runner_up',
+  top_scorer: 'top_scorer',
+  best_player: 'best_player',
+  match_points: 'match_points',
+  extras_points: 'extras_points',
+  total_points: 'total_points',
+  submitted_at: 'submitted_at',
+  created_at: 'created_at'
+} as const
+
+export type ProdePlayerScalarFieldEnum = (typeof ProdePlayerScalarFieldEnum)[keyof typeof ProdePlayerScalarFieldEnum]
+
+
+export const ProdeMatchScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  group: 'group',
+  home_team: 'home_team',
+  away_team: 'away_team',
+  match_date: 'match_date',
+  home_score: 'home_score',
+  away_score: 'away_score',
+  finished: 'finished'
+} as const
+
+export type ProdeMatchScalarFieldEnum = (typeof ProdeMatchScalarFieldEnum)[keyof typeof ProdeMatchScalarFieldEnum]
+
+
+export const ProdeMatchPredictionScalarFieldEnum = {
+  id: 'id',
+  player_id: 'player_id',
+  match_id: 'match_id',
+  home_score: 'home_score',
+  away_score: 'away_score',
+  points: 'points'
+} as const
+
+export type ProdeMatchPredictionScalarFieldEnum = (typeof ProdeMatchPredictionScalarFieldEnum)[keyof typeof ProdeMatchPredictionScalarFieldEnum]
+
+
+export const ProdeSettingsScalarFieldEnum = {
+  id: 'id',
+  champion: 'champion',
+  runner_up: 'runner_up',
+  top_scorer: 'top_scorer',
+  best_player: 'best_player',
+  predictions_locked: 'predictions_locked',
+  updated_at: 'updated_at'
+} as const
+
+export type ProdeSettingsScalarFieldEnum = (typeof ProdeSettingsScalarFieldEnum)[keyof typeof ProdeSettingsScalarFieldEnum]
 
 
 export const SortOrder = {

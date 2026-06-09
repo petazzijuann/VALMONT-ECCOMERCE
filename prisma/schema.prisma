@@ -137,3 +137,73 @@ model TelegramSession {
 
   @@map("telegram_sessions")
 }
+
+// ── Prode Mundial 2026 ──────────────────────────────────────────
+
+model ProdePlayer {
+  id            String   @id @default(uuid())
+  instagram     String   @unique
+  email         String   @unique
+  password_hash String
+
+  // Predicciones especiales (códigos de equipo / texto libre)
+  champion    String?
+  runner_up   String?
+  top_scorer  String?
+  best_player String?
+
+  // Puntajes cacheados (recalculados por el admin)
+  match_points  Int @default(0)
+  extras_points Int @default(0)
+  total_points  Int @default(0)
+
+  submitted_at DateTime?
+  created_at   DateTime  @default(now())
+
+  predictions ProdeMatchPrediction[]
+
+  @@map("prode_players")
+}
+
+model ProdeMatch {
+  id         String    @id @default(uuid())
+  code       String    @unique
+  group      String
+  home_team  String
+  away_team  String
+  match_date DateTime?
+  home_score Int?
+  away_score Int?
+  finished   Boolean   @default(false)
+
+  predictions ProdeMatchPrediction[]
+
+  @@map("prode_matches")
+}
+
+model ProdeMatchPrediction {
+  id         String @id @default(uuid())
+  player_id  String
+  match_id   String
+  home_score Int
+  away_score Int
+  points     Int    @default(0)
+
+  player ProdePlayer @relation(fields: [player_id], references: [id], onDelete: Cascade)
+  match  ProdeMatch  @relation(fields: [match_id], references: [id], onDelete: Cascade)
+
+  @@unique([player_id, match_id])
+  @@map("prode_match_predictions")
+}
+
+model ProdeSettings {
+  id                 String   @id @default("main")
+  champion           String?
+  runner_up          String?
+  top_scorer         String?
+  best_player        String?
+  predictions_locked Boolean  @default(false)
+  updated_at         DateTime @updatedAt
+
+  @@map("prode_settings")
+}
