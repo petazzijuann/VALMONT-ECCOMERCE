@@ -46,12 +46,22 @@ export async function fulfillOrder(orderId: string, paymentMethod: string) {
 
   const items = order.items as unknown as OrderItem[];
 
+  // Si el pedido usó un cupón de descuento, repartirlo proporcionalmente
+  // entre los ítems para que el precio de venta refleje lo realmente cobrado
+  // (así Ventas y Dashboard cuentan el descuento, no solo el pedido).
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const discount = Number(order.discount_amount ?? 0);
+  const factor   = subtotal > 0 ? (subtotal - discount) / subtotal : 1;
+
   for (const item of items) {
     const product = await prisma.product.findUnique({
       where: { id: item.product_id },
       select: { price_cost: true },
     });
     if (!product) continue;
+
+    const unitSalePrice = Math.round(item.price * factor * 100) / 100;
+
     await prisma.sale.create({
       data: {
         product_id:     item.product_id,
@@ -59,7 +69,7 @@ export async function fulfillOrder(orderId: string, paymentMethod: string) {
         size:           item.size,
         color:          item.color ?? null,
         quantity:       item.qty,
-        sale_price:     item.price,
+        sale_price:     unitSalePrice,
         cost_price:     product.price_cost,
         channel:        "online",
         payment_method: paymentMethod,
