@@ -6,13 +6,15 @@ import { formatARS } from "@/lib/utils";
 import type { OrderItem } from "@/types";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
+type AdminOrderItem = OrderItem & { image?: string | null };
+
 interface AdminOrder {
   id: string;
   customer_name:    string;
   customer_email:   string;
   customer_phone:   string;
   customer_address: { street: string; city: string; province: string; zip: string };
-  items: OrderItem[];
+  items: AdminOrderItem[];
   total_amount: number;
   payment_method: string;
   status: string;
@@ -45,6 +47,7 @@ export default function OrdersTable() {
   const [deleteOpen,  setDeleteOpen]  = useState(false);
   const [deleting,    setDeleting]    = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   function showToast(msg: string, type: "ok" | "err") {
     setToast({ msg, type });
@@ -115,7 +118,7 @@ export default function OrdersTable() {
             const status = STATUS_LABEL[order.status] ?? { label: order.status, cls: "bg-muted text-muted-foreground" };
             const isPending = order.status === "pending_payment";
             const isDeletable = DELETABLE.includes(order.status);
-            const items = order.items as unknown as OrderItem[];
+            const items = order.items;
 
             return (
               <div key={order.id} className="border border-border p-5 flex flex-col gap-3">
@@ -145,12 +148,52 @@ export default function OrdersTable() {
                   <p className="price-text text-lg shrink-0">{formatARS(order.total_amount)}</p>
                 </div>
 
-                <ul className="text-sm text-muted-foreground flex flex-col gap-1">
-                  {items.map((item, i) => (
-                    <li key={i}>
-                      {item.name} ({item.size}) ×{item.qty} — {formatARS(item.price * item.qty)}
-                    </li>
-                  ))}
+                <ul className="flex flex-col gap-2">
+                  {items.map((item, i) => {
+                    const hasColor = item.color && item.color !== "Único";
+                    return (
+                      <li key={i} className="flex items-center gap-3">
+                        {item.image ? (
+                          <button
+                            type="button"
+                            onClick={() => setLightbox(item.image!)}
+                            className="shrink-0 border border-border hover:border-brand-green transition-colors"
+                            title="Ver foto"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="h-12 w-12 object-cover"
+                              loading="lazy"
+                            />
+                          </button>
+                        ) : (
+                          <div className="h-12 w-12 shrink-0 border border-border bg-muted" />
+                        )}
+                        <div className="text-sm min-w-0">
+                          <a
+                            href={`/producto/${item.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium hover:text-brand-green hover:underline"
+                          >
+                            {item.name}
+                          </a>
+                          <p className="text-muted-foreground text-xs mt-0.5">
+                            Talle {item.size}
+                            {hasColor && (
+                              <>
+                                {" · "}
+                                <span className="text-foreground">{item.color}</span>
+                              </>
+                            )}
+                            {" · "}×{item.qty} — {formatARS(item.price * item.qty)}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 {/* Cupón */}
@@ -229,6 +272,28 @@ export default function OrdersTable() {
         onConfirm={handleDelete}
         loading={deleting}
       />
+
+      {/* Lightbox de foto */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Producto"
+            className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl"
+          />
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white text-3xl leading-none"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
