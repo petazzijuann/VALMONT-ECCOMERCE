@@ -60,38 +60,44 @@ export async function POST(request: NextRequest) {
   }
   const d = parsed.data;
 
-  await prisma.$transaction([
-    ...d.matches.map((m) =>
-      prisma.prodeMatch.update({
-        where: { id: m.id },
-        data: {
-          home_score: m.finished ? m.home_score : null,
-          away_score: m.finished ? m.away_score : null,
-          finished: m.finished && m.home_score !== null && m.away_score !== null,
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const m of d.matches) {
+        await tx.prodeMatch.update({
+          where: { id: m.id },
+          data: {
+            home_score: m.finished ? m.home_score : null,
+            away_score: m.finished ? m.away_score : null,
+            finished: m.finished && m.home_score !== null && m.away_score !== null,
+          },
+        });
+      }
+      await tx.prodeSettings.upsert({
+        where: { id: "main" },
+        create: {
+          id: "main",
+          champion: d.champion || null,
+          runner_up: d.runner_up || null,
+          top_scorer: d.top_scorer || null,
+          best_player: d.best_player || null,
+          predictions_locked: d.predictions_locked,
         },
-      })
-    ),
-    prisma.prodeSettings.upsert({
-      where: { id: "main" },
-      create: {
-        id: "main",
-        champion: d.champion || null,
-        runner_up: d.runner_up || null,
-        top_scorer: d.top_scorer || null,
-        best_player: d.best_player || null,
-        predictions_locked: d.predictions_locked,
-      },
-      update: {
-        champion: d.champion || null,
-        runner_up: d.runner_up || null,
-        top_scorer: d.top_scorer || null,
-        best_player: d.best_player || null,
-        predictions_locked: d.predictions_locked,
-      },
-    }),
-  ]);
+        update: {
+          champion: d.champion || null,
+          runner_up: d.runner_up || null,
+          top_scorer: d.top_scorer || null,
+          best_player: d.best_player || null,
+          predictions_locked: d.predictions_locked,
+        },
+      });
+    });
 
-  await recalcAll();
+    await recalcAll();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[admin/prode POST]", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
