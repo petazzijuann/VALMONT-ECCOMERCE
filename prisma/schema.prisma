@@ -207,3 +207,16 @@ model ProdeSettings {
 
   @@map("prode_settings")
 }
+
+model Expense {
+  id          String   @id @default(uuid())
+  description String
+  amount      Decimal  @db.Decimal(12, 2)
+  date        DateTime
+  category    String?
+  notes       String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("expenses")
+}

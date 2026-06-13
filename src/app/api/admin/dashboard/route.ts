@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       ? undefined
       : startOf(period === "today" ? "today" : period === "week" ? "week" : "month");
 
-  const [sales, products] = await Promise.all([
+  const [sales, products, expenses] = await Promise.all([
     prisma.sale.findMany({
       where: since ? { created_at: { gte: since } } : {},
       orderBy: { created_at: "asc" },
@@ -40,12 +40,17 @@ export async function GET(request: NextRequest) {
     prisma.product.findMany({
       select: { name: true, stock: true, color_variants: true, price_sale: true, price_cost: true },
     }),
+    prisma.expense.findMany({
+      where: since ? { date: { gte: since } } : {},
+    }),
   ]);
 
-  const revenue = sales.reduce((s, v) => s + Number(v.sale_price) * v.quantity, 0);
-  const cogs    = sales.reduce((s, v) => s + Number(v.cost_price) * v.quantity, 0);
-  const profit  = revenue - cogs;
-  const margin_avg = revenue > 0 ? Math.round(((revenue - cogs) / revenue) * 100) : 0;
+  const revenue        = sales.reduce((s, v) => s + Number(v.sale_price) * v.quantity, 0);
+  const cogs           = sales.reduce((s, v) => s + Number(v.cost_price) * v.quantity, 0);
+  const profit         = revenue - cogs;
+  const expenses_total = expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const net_profit     = profit - expenses_total;
+  const margin_avg     = revenue > 0 ? Math.round(((revenue - cogs) / revenue) * 100) : 0;
 
   // Top products by units sold
   const pMap: Record<string, { units: number; rev: number; cost: number }> = {};
@@ -103,6 +108,8 @@ export async function GET(request: NextRequest) {
     revenue,
     cogs,
     profit,
+    expenses_total,
+    net_profit,
     margin_avg,
     sales_count: sales.length,
     stock_value_cost,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Inbox, Mail, Tag, Trophy } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Inbox, Mail, Tag, Trophy, Receipt } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/admin/reportes",      label: "REPORTES",     icon: BarChart3 },
   { href: "/admin/suscriptores", label: "SUSCRIPTORES", icon: Mail },
   { href: "/admin/prode",         label: "PRODE",        icon: Trophy },
+  { href: "/admin/gastos",        label: "GASTOS",       icon: Receipt },
 ];
 
 export default function AdminSidebar() {

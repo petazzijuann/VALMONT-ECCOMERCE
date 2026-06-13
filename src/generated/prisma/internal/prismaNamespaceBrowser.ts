@@ -61,7 +61,8 @@ export const ModelName = {
   ProdePlayer: 'ProdePlayer',
   ProdeMatch: 'ProdeMatch',
   ProdeMatchPrediction: 'ProdeMatchPrediction',
-  ProdeSettings: 'ProdeSettings'
+  ProdeSettings: 'ProdeSettings',
+  Expense: 'Expense'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -260,6 +261,20 @@ export const ProdeSettingsScalarFieldEnum = {
 } as const
 
 export type ProdeSettingsScalarFieldEnum = (typeof ProdeSettingsScalarFieldEnum)[keyof typeof ProdeSettingsScalarFieldEnum]
+
+
+export const ExpenseScalarFieldEnum = {
+  id: 'id',
+  description: 'description',
+  amount: 'amount',
+  date: 'date',
+  category: 'category',
+  notes: 'notes',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
 
 
 export const SortOrder = {

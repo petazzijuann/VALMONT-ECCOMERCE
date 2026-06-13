@@ -51,22 +51,33 @@ export default function DashboardClient() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {isLoading ? (
           [...Array(6)].map((_, i) => <SkeletonCard key={i} />)
         ) : data ? (
           <>
-            <MetricCard label="INGRESOS"          value={data.revenue}          format="currency" />
-            <MetricCard label="GANANCIA NETA"     value={data.profit}           format="currency" />
-            <MetricCard label="MARGEN PROMEDIO"   value={data.margin_avg}       format="percent" />
-            <MetricCard label="VENTAS"            value={data.sales_count}      format="number" />
+            <MetricCard label="INGRESOS"        value={data.revenue}          format="currency" />
+            <MetricCard
+              label="GASTOS"
+              value={data.expenses_total}
+              format="currency"
+              variant="danger"
+            />
+            <MetricCard
+              label="GANANCIA NETA"
+              value={data.net_profit}
+              format="currency"
+              sub={`Bruta (sin gastos): ${formatARS(data.profit)}`}
+            />
+            <MetricCard label="MARGEN PROMEDIO" value={data.margin_avg}       format="percent" />
+            <MetricCard label="VENTAS"          value={data.sales_count}      format="number" />
             <MetricCard
               label="STOCK AL COSTO"
               value={data.stock_value_cost}
               format="currency"
               sub={`Valor venta: ${formatARS(data.stock_value_sale)}`}
             />
-            <MetricCard label="CMV"               value={data.cogs}             format="currency" />
+            <MetricCard label="CMV"             value={data.cogs}             format="currency" />
           </>
         ) : null}
       </div>

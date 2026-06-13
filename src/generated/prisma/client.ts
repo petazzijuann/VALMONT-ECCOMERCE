@@ -96,3 +96,8 @@ export type ProdeMatchPrediction = Prisma.ProdeMatchPredictionModel
  * 
  */
 export type ProdeSettings = Prisma.ProdeSettingsModel
+/**
+ * Model Expense
+ * 
+ */
+export type Expense = Prisma.ExpenseModel

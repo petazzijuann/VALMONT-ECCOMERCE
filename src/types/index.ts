@@ -103,6 +103,8 @@ export interface DashboardMetrics {
   revenue: number;
   cogs: number;
   profit: number;
+  expenses_total: number;
+  net_profit: number;
   margin_avg: number;
   sales_count: number;
   stock_value_cost: number;
@@ -123,6 +125,17 @@ export interface DashboardMetrics {
     revenue: number;
     profit: number;
   }>;
+}
+
+export interface ExpensePublic {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CouponPublic {
