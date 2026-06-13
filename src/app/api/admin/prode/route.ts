@@ -62,16 +62,18 @@ export async function POST(request: NextRequest) {
 
   try {
     await prisma.$transaction(async (tx) => {
-      for (const m of d.matches) {
-        await tx.prodeMatch.update({
-          where: { id: m.id },
-          data: {
-            home_score: m.finished ? m.home_score : null,
-            away_score: m.finished ? m.away_score : null,
-            finished: m.finished && m.home_score !== null && m.away_score !== null,
-          },
-        });
-      }
+      await Promise.all(
+        d.matches.map((m) =>
+          tx.prodeMatch.update({
+            where: { id: m.id },
+            data: {
+              home_score: m.finished ? m.home_score : null,
+              away_score: m.finished ? m.away_score : null,
+              finished: m.finished && m.home_score !== null && m.away_score !== null,
+            },
+          })
+        )
+      );
       await tx.prodeSettings.upsert({
         where: { id: "main" },
         create: {
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
           predictions_locked: d.predictions_locked,
         },
       });
-    });
+    }, { timeout: 30000 });
 
     await recalcAll();
   } catch (err) {
