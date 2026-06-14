@@ -1,0 +1,127 @@
+{
+  "name": "Valmont — Instagram Generator",
+  "nodes": [
+    {
+      "id": "b1000000-0000-0000-0000-000000000001",
+      "name": "Cron 8am Buenos Aires",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b1000000-0000-0000-0000-000000000002",
+      "name": "GET Productos con Stock",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.VALMONT_API_URL }}/api/instagram/products",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{ $env.INSTAGRAM_API_SECRET }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1000000-0000-0000-0000-000000000003",
+      "name": "Seleccionar Productos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Recibe el array de productos del endpoint de Valmont\nconst raw = $input.first().json;\nconst products = Array.isArray(raw) ? raw : Object.values(raw);\n\nif (!products || products.length === 0) {\n  throw new Error('No hay productos con stock publicados');\n}\n\n// Mezclar y elegir 5 a 7 productos al azar\nconst shuffled = [...products].sort(() => Math.random() - 0.5);\nconst count = Math.min(Math.floor(Math.random() * 3) + 5, shuffled.length); // 5, 6 o 7\nconst selected = shuffled.slice(0, count);\n\nconst emojis = {\n  remeras: '👕',\n  pantalones: '👖',\n  buzos: '🧥',\n  accesorios: '💍',\n  calzado: '👟',\n};\n\nreturn selected.map((p, i) => ({\n  json: {\n    id:              p.id,\n    name:            p.name,\n    category:        p.category,\n    price_sale:      p.price_sale,\n    image_url:       p.image_url,\n    index:           i + 1,\n    total:           count,\n    emoji:           emojis[p.category] || '🛍️',\n    price_formatted: new Intl.NumberFormat('es-AR', {\n      style:                 'currency',\n      currency:              'ARS',\n      minimumFractionDigits: 0,\n    }).format(p.price_sale),\n  },\n}));\n"
+      }
+    },
+    {
+      "id": "b1000000-0000-0000-0000-000000000004",
+      "name": "Loop Productos",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [900, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "b1000000-0000-0000-0000-000000000005",
+      "name": "Generar Imágenes y Enviar Story",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 180],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const p = $input.item.json;\nconst HF_TOKEN  = $env.HF_TOKEN;\nconst TG_TOKEN  = $env.INSTAGRAM_TG_BOT_TOKEN;\nconst TG_CHAT   = $env.INSTAGRAM_TG_CHAT_ID;\n\n// ─── helpers ────────────────────────────────────────────────\nfunction buildMultipart(chatId, caption, imgBuffer, filename) {\n  const b    = `----ValmontBound${Date.now()}`;\n  const crlf = '\\r\\n';\n  const body = Buffer.concat([\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"chat_id\"${crlf}${crlf}${chatId}${crlf}`),\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"parse_mode\"${crlf}${crlf}Markdown${crlf}`),\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"caption\"${crlf}${crlf}${caption}${crlf}`),\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"photo\"; filename=\"${filename}\"${crlf}Content-Type: image/jpeg${crlf}${crlf}`),\n    imgBuffer,\n    Buffer.from(`${crlf}--${b}--${crlf}`),\n  ]);\n  return { body, ct: `multipart/form-data; boundary=${b}` };\n}\n\nasync function tgSendPhoto(imgBuffer, caption, filename) {\n  const { body, ct } = buildMultipart(TG_CHAT, caption, imgBuffer, filename);\n  const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, {\n    method: 'POST',\n    headers: { 'Content-Type': ct },\n    body,\n  });\n  if (!r.ok) throw new Error(`Telegram sendPhoto error: ${await r.text()}`);\n}\n\nasync function hfPix2Pix(imageBase64, prompt) {\n  for (let attempt = 0; attempt < 6; attempt++) {\n    const r = await fetch(\n      'https://api-inference.huggingface.co/models/timbrooks/instruct-pix2pix',\n      {\n        method: 'POST',\n        headers: {\n          Authorization: `Bearer ${HF_TOKEN}`,\n          'Content-Type': 'application/json',\n        },\n        body: JSON.stringify({\n          inputs: imageBase64,\n          parameters: {\n            prompt,\n            negative_prompt: 'ugly, blurry, low quality, watermark, text, logo, distorted, duplicate',\n            num_inference_steps: 25,\n            image_guidance_scale: 1.5,\n            guidance_scale: 7.5,\n          },\n        }),\n      }\n    );\n\n    if (r.status === 503) {\n      const err = await r.json().catch(() => ({}));\n      const wait = Math.min((err.estimated_time ?? 30) * 1000, 90000);\n      await new Promise((res) => setTimeout(res, wait));\n      continue;\n    }\n\n    if (!r.ok) throw new Error(`HF error ${r.status}: ${await r.text()}`);\n    return Buffer.from(await r.arrayBuffer());\n  }\n  throw new Error('HF: máximo de reintentos alcanzado');\n}\n\n// ─── 1. Descargar imagen del producto ───────────────────────\nconst imgResp = await fetch(p.image_url);\nif (!imgResp.ok) throw new Error(`No se pudo descargar imagen: ${p.image_url}`);\nconst imgBase64 = Buffer.from(await imgResp.arrayBuffer()).toString('base64');\n\n// ─── 2. Generar imagen estilo STORY (flat lay en piso de cemento) ─\nconst storyPrompt =\n  `Place this ${p.category} clothing item as a flat lay on a polished textured concrete floor, ` +\n  `overhead composition, dramatic studio lighting from above, minimalist fashion editorial, ` +\n  `high detail, sharp focus, professional product photography`;\n\nconst storyBuffer = await hfPix2Pix(imgBase64, storyPrompt);\n\n// ─── 3. Armar caption para la story ─────────────────────────\nconst name = p.name.replace(/[_*[\\]()~`>#+=|{}.!-]/g, '\\\\$&'); // escape Markdown\nconst storyCaption =\n  `📱 *HISTORIA ${p.index}/${p.total}*\\n\\n` +\n  `${p.emoji} *${name.toUpperCase()}*\\n` +\n  `💵 ${p.price_formatted}\\n\\n` +\n  `✨ Últimas unidades disponibles\\n` +\n  `🛒 valmont\\-jarg\\.com\\n\\n` +\n  `#valmont #streetwear #moda #style #argentina`;\n\n// ─── 4. Enviar story a Telegram ──────────────────────────────\nawait tgSendPhoto(storyBuffer, storyCaption, `story_${p.index}.jpg`);\n\n// ─── 5. Generar imagen estilo CARRUSEL (editorial, modelo) ───\nconst carouselPrompt =\n  `Fashion model confidently wearing this exact ${p.category} clothing item, ` +\n  `urban concrete background, energetic lifestyle photography, candid editorial pose, ` +\n  `vibrant fun composition, high quality commercial photography`;\n\nconst carouselBuffer = await hfPix2Pix(imgBase64, carouselPrompt);\n\n// ─── 6. Retornar datos del carrusel para el paso siguiente ───\nreturn [{\n  json: {\n    product_name:           p.name,\n    price_formatted:        p.price_formatted,\n    emoji:                  p.emoji,\n    index:                  p.index,\n    total:                  p.total,\n    carousel_image_base64:  carouselBuffer.toString('base64'),\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "b1000000-0000-0000-0000-000000000006",
+      "name": "Enviar Carrusel y Cerrar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 420],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items    = $input.all();\nconst TG_TOKEN = $env.INSTAGRAM_TG_BOT_TOKEN;\nconst TG_CHAT  = $env.INSTAGRAM_TG_CHAT_ID;\n\n// ─── helpers ────────────────────────────────────────────────\nasync function tgMsg(text) {\n  await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {\n    method:  'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body:    JSON.stringify({ chat_id: TG_CHAT, parse_mode: 'Markdown', text }),\n  });\n}\n\nasync function tgSendPhoto(imgBuffer, caption, filename, i) {\n  const b    = `----ValmontCarrusel${Date.now()}${i}`;\n  const crlf = '\\r\\n';\n  const body = Buffer.concat([\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"chat_id\"${crlf}${crlf}${TG_CHAT}${crlf}`),\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"parse_mode\"${crlf}${crlf}Markdown${crlf}`),\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"caption\"${crlf}${crlf}${caption}${crlf}`),\n    Buffer.from(`--${b}${crlf}Content-Disposition: form-data; name=\"photo\"; filename=\"${filename}\"${crlf}Content-Type: image/jpeg${crlf}${crlf}`),\n    imgBuffer,\n    Buffer.from(`${crlf}--${b}--${crlf}`),\n  ]);\n  const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, {\n    method:  'POST',\n    headers: { 'Content-Type': `multipart/form-data; boundary=${b}` },\n    body,\n  });\n  if (!r.ok) console.error(`Error foto carrusel ${i}:`, await r.text());\n}\n\n// ─── Cabecera del carrusel ───────────────────────────────────\nawait tgMsg(\n  `🎠 *CARRUSEL DEL DÍA*\\n\\n` +\n  `Subí estas *${items.length} fotos* como carrusel en Instagram con el caption de abajo 👇`\n);\nawait new Promise((r) => setTimeout(r, 500));\n\n// ─── Caption principal (para copiar y pegar) ─────────────────\nconst productLines = items.map((i) => `${i.json.emoji} ${i.json.product_name} — ${i.json.price_formatted}`).join('\\n');\nconst mainCaption =\n  `✨ SELECCIÓN DEL DÍA\\n\\n` +\n  `${productLines}\\n\\n` +\n  `🛒 Disponible en valmont-jarg.com\\n` +\n  `📦 Envíos a todo el país\\n\\n` +\n  `#valmont #streetwear #moda #nuevacoleccion #outfits #style #argentina`;\n\nawait tgMsg(`📝 *CAPTION PARA EL CARRUSEL:*\\n\\`\\`\\`\\n${mainCaption}\\n\\`\\`\\``);\nawait new Promise((r) => setTimeout(r, 500));\n\n// ─── Fotos del carrusel ──────────────────────────────────────\nfor (let i = 0; i < items.length; i++) {\n  const item      = items[i].json;\n  const imgBuffer = Buffer.from(item.carousel_image_base64, 'base64');\n  const caption   = `🎠 *Slide ${i + 1}/${items.length}* — ${item.emoji} ${item.product_name}`;\n\n  await tgSendPhoto(imgBuffer, caption, `carousel_${i + 1}.jpg`, i);\n  await new Promise((r) => setTimeout(r, 700));\n}\n\n// ─── Mensaje final ───────────────────────────────────────────\nawait tgMsg(\n  `✅ *¡Listo para publicar!*\\n\\n` +\n  `📱 ${items.length} historias enviadas\\n` +\n  `🎠 ${items.length} slides del carrusel\\n\\n` +\n  `_Revisá las fotos y subílas cuando quieras\\._`\n);\n\nreturn items;\n"
+      }
+    }
+  ],
+  "connections": {
+    "Cron 8am Buenos Aires": {
+      "main": [
+        [{ "node": "GET Productos con Stock", "type": "main", "index": 0 }]
+      ]
+    },
+    "GET Productos con Stock": {
+      "main": [
+        [{ "node": "Seleccionar Productos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Seleccionar Productos": {
+      "main": [
+        [{ "node": "Loop Productos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Loop Productos": {
+      "main": [
+        [{ "node": "Generar Imágenes y Enviar Story", "type": "main", "index": 0 }],
+        [{ "node": "Enviar Carrusel y Cerrar", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generar Imágenes y Enviar Story": {
+      "main": [
+        [{ "node": "Loop Productos", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "b1000000-cafe-babe-dead-000000000001",
+  "id": "valmont-instagram-001",
+  "meta": {
+    "instanceId": "valmont"
+  }
+}
