@@ -42,6 +42,11 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
 
   const noStock = allSizes.every((s) => (activeStock[s] ?? 0) === 0);
 
+  // Verdadero "sin stock global": ninguna variante (ni color ni talle) tiene unidades
+  const globalNoStock = variants.length > 0
+    ? variants.every((v) => Object.values(v.stock).every((q) => q === 0))
+    : noStock;
+
   function handleSizeSelect(size: string) {
     if ((activeStock[size] ?? 0) === 0) return;
     setSelectedSize(size);
@@ -74,7 +79,7 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
     }, 400);
   }
 
-  if (noStock) {
+  if (globalNoStock) {
     return (
       <div className="border border-border px-6 py-4 text-center">
         <p className="label-tag text-muted-foreground">SIN STOCK</p>
@@ -86,13 +91,14 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Selector de color */}
+      {/* Selector de color — siempre visible si hay múltiples colores */}
       {hasMultipleColors && onColorChange && (
         <div>
           <p className="label-tag mb-3">COLOR: {selectedColor?.toUpperCase()}</p>
           <div className="flex flex-wrap gap-2">
             {variants.map((v) => {
-              const active = selectedColor === v.name;
+              const active        = selectedColor === v.name;
+              const variantNoStock = Object.values(v.stock).every((q) => q === 0);
               return (
                 <button
                   key={v.name}
@@ -101,6 +107,8 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
                   className={`px-4 h-10 border label-tag text-sm transition-colors ${
                     active
                       ? "bg-brand-green text-brand-cream border-brand-green"
+                      : variantNoStock
+                      ? "border-border text-muted-foreground opacity-50 cursor-not-allowed"
                       : "border-border hover:border-brand-green hover:bg-brand-green/5"
                   }`}
                 >
@@ -111,6 +119,14 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
           </div>
         </div>
       )}
+
+      {/* Si el color activo no tiene stock, avisamos y no mostramos talle/carrito */}
+      {noStock ? (
+        <div className="border border-border px-6 py-4 text-center">
+          <p className="label-tag text-muted-foreground">ESTE COLOR NO TIENE STOCK</p>
+        </div>
+      ) : (
+      <>
 
       {/* Selector de talle */}
       <div>
@@ -205,6 +221,9 @@ export default function AddToCartSection({ product, selectedColor, onColorChange
           )}
         </span>
       </button>
+
+      </>
+      )}
     </div>
   );
 }

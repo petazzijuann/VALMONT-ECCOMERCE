@@ -7,8 +7,13 @@ import type { ProductPublic } from "@/types";
 
 export default function ProductPageClient({ product }: { product: ProductPublic }) {
   const variants = product.color_variants;
+
+  // Arranca en el primer color con stock; si todos están sin stock, usa el primero
+  const firstWithStock = variants.find((v) =>
+    Object.values(v.stock).some((q) => q > 0)
+  );
   const [selectedColor, setSelectedColor] = useState<string | null>(
-    variants.length > 0 ? variants[0].name : null
+    (firstWithStock ?? variants[0])?.name ?? null
   );
 
   const currentVariant = variants.find((v) => v.name === selectedColor);
