@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma/client";
 import TiendaHeader from "@/components/public/TiendaHeader";
 import FiltrosBarra from "@/components/public/FiltrosBarra";
 import TiendaProductGrid from "@/components/public/TiendaProductGrid";
-import type { ProductPublic } from "@/types";
+import type { ColorVariant, ProductPublic } from "@/types";
 import type { Prisma } from "../../../generated/prisma/client";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -33,7 +33,6 @@ export async function generateMetadata({
 async function getProducts(category?: string, size?: string, query?: string): Promise<ProductPublic[]> {
   const where: Prisma.ProductWhereInput = { is_published: true };
   if (category && category !== "todos") where.category = category;
-  if (size) where.stock = { path: [size], gt: 0 };
   if (query && query.trim().length >= 2) {
     where.OR = [
       { name:        { contains: query.trim(), mode: "insensitive" } },
@@ -46,18 +45,30 @@ async function getProducts(category?: string, size?: string, query?: string): Pr
     select: {
       id: true, name: true, slug: true, description: true,
       category: true, images: true, tags: true,
-      price_sale: true, stock: true, is_published: true,
+      price_sale: true, stock: true, color_variants: true, is_published: true,
       created_at: true, updated_at: true,
     },
     orderBy: { created_at: "desc" },
   });
 
-  return products.map((p) => ({
+  // El filtro por talle debe considerar tanto el color principal (stock)
+  // como los colores adicionales (color_variants), ya que un talle puede
+  // tener stock solo en una de las variantes de color.
+  const filtered = size
+    ? products.filter((p) => {
+        const mainStock = (p.stock as Record<string, number> | null) ?? {};
+        if ((mainStock[size] ?? 0) > 0) return true;
+        const variants = (p.color_variants as unknown as ColorVariant[] | null) ?? [];
+        return variants.some((v) => (v.stock?.[size] ?? 0) > 0);
+      })
+    : products;
+
+  return filtered.map((p) => ({
     ...p,
     price_sale: Number(p.price_sale),
     created_at: p.created_at.toISOString(),
     updated_at: p.updated_at.toISOString(),
-  })) as ProductPublic[];
+  })) as unknown as ProductPublic[];
 }
 
 export default async function TiendaPage({
