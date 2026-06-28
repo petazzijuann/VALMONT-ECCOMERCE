@@ -3,10 +3,24 @@ import Link from "next/link";
 import { formatARS } from "@/lib/utils";
 import type { ProductPublic } from "@/types";
 
+function hasStock(stock: Record<string, number> | undefined | null): boolean {
+  return Object.values(stock ?? {}).some((qty) => (qty ?? 0) > 0);
+}
+
 export default function ProductCard({ product }: { product: ProductPublic }) {
-  const img1 = product.images[0];
-  const img2 = product.images[1];
-  const sizes = Object.entries(product.stock as Record<string, number>)
+  // Si el color principal está agotado pero alguna variante tiene stock,
+  // mostramos las imágenes y talles de ese color con stock.
+  const mainHasStock = hasStock(product.stock as Record<string, number>);
+  const variantWithStock = mainHasStock
+    ? null
+    : product.color_variants?.find((v) => hasStock(v.stock));
+
+  const images = variantWithStock?.images ?? product.images;
+  const stock = (variantWithStock?.stock ?? product.stock) as Record<string, number>;
+
+  const img1 = images[0];
+  const img2 = images[1];
+  const sizes = Object.entries(stock)
     .filter(([, qty]) => qty > 0)
     .map(([size]) => size);
 

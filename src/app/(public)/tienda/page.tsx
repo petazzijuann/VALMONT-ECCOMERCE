@@ -51,17 +51,27 @@ async function getProducts(category?: string, size?: string, query?: string): Pr
     orderBy: { created_at: "desc" },
   });
 
-  // El filtro por talle debe considerar tanto el color principal (stock)
-  // como los colores adicionales (color_variants), ya que un talle puede
-  // tener stock solo en una de las variantes de color.
-  const filtered = size
-    ? products.filter((p) => {
-        const mainStock = (p.stock as Record<string, number> | null) ?? {};
-        if ((mainStock[size] ?? 0) > 0) return true;
-        const variants = (p.color_variants as unknown as ColorVariant[] | null) ?? [];
-        return variants.some((v) => (v.stock?.[size] ?? 0) > 0);
-      })
-    : products;
+  const filtered = products.filter((p) => {
+    const mainStock = (p.stock as Record<string, number> | null) ?? {};
+    const variants = (p.color_variants as unknown as ColorVariant[] | null) ?? [];
+
+    // Un producto sin stock en ningún talle ni color no debe mostrarse,
+    // aunque su color principal esté agotado si otro color sí tiene stock.
+    const hasAnyStock =
+      Object.values(mainStock).some((qty) => (qty ?? 0) > 0) ||
+      variants.some((v) => Object.values(v.stock ?? {}).some((qty) => (qty ?? 0) > 0));
+    if (!hasAnyStock) return false;
+
+    // El filtro por talle considera tanto el color principal (stock) como
+    // los colores adicionales (color_variants), ya que un talle puede tener
+    // stock solo en una de las variantes de color.
+    if (size) {
+      if ((mainStock[size] ?? 0) > 0) return true;
+      return variants.some((v) => (v.stock?.[size] ?? 0) > 0);
+    }
+
+    return true;
+  });
 
   return filtered.map((p) => ({
     ...p,
