@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
 
+// Neutraliza inyección de fórmulas al abrir el CSV en Excel/Sheets:
+// celdas que empiezan con = + - @ se prefijan con apóstrofo.
+function csvSafe(value: string): string {
+  return /^[=+\-@]/.test(value) ? `'${value}` : value;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const format = searchParams.get("format");
-  const limit  = parseInt(searchParams.get("limit") ?? "100");
+  const parsedLimit = parseInt(searchParams.get("limit") ?? "100");
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.min(parsedLimit, 5000)
+    : 100;
 
   const sales = await prisma.sale.findMany({
     orderBy: { created_at: "desc" },
@@ -39,7 +48,7 @@ export async function GET(request: NextRequest) {
       [
         s.id,
         s.created_at.slice(0, 10),
-        `"${s.product_name.replace(/"/g, '""')}"`,
+        `"${csvSafe(s.product_name).replace(/"/g, '""')}"`,
         s.color ?? "",
         s.size,
         s.quantity,
@@ -47,9 +56,9 @@ export async function GET(request: NextRequest) {
         s.cost_price,
         s.channel,
         s.payment_method,
-        `"${(s.customer_name ?? "").replace(/"/g, '""')}"`,
-        s.customer_email ?? "",
-        s.customer_phone ?? "",
+        `"${csvSafe(s.customer_name ?? "").replace(/"/g, '""')}"`,
+        `"${csvSafe(s.customer_email ?? "").replace(/"/g, '""')}"`,
+        `"${csvSafe(s.customer_phone ?? "").replace(/"/g, '""')}"`,
       ].join(",")
     );
     const csv = [header, ...rows].join("\n");

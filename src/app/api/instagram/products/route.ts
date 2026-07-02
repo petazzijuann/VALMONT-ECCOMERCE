@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
+import { safeCompareSecret } from "@/lib/security";
 import type { StockMap, ColorVariant } from "@/types";
 
 function hasStock(product: { stock: unknown; color_variants: unknown }): boolean {
@@ -12,7 +13,7 @@ function hasStock(product: { stock: unknown; color_variants: unknown }): boolean
 
 export async function GET(request: NextRequest) {
   const secret = request.headers.get("x-api-secret");
-  if (!secret || secret !== process.env.INSTAGRAM_API_SECRET) {
+  if (!safeCompareSecret(secret, process.env.INSTAGRAM_API_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

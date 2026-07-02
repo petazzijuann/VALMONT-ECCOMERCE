@@ -101,26 +101,40 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await prisma.$transaction([
-    prisma.prodeMatchPrediction.createMany({
-      data: matches.map((m) => ({
-        player_id: player.id,
-        match_id: m.id,
-        home_score: scores[m.id].home,
-        away_score: scores[m.id].away,
-      })),
-    }),
-    prisma.prodePlayer.update({
-      where: { id: player.id },
-      data: {
-        champion,
-        runner_up,
-        top_scorer: top_scorer.trim(),
-        best_player: best_player.trim(),
-        submitted_at: new Date(),
-      },
-    }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.prodeMatchPrediction.createMany({
+        data: matches.map((m) => ({
+          player_id: player.id,
+          match_id: m.id,
+          home_score: scores[m.id].home,
+          away_score: scores[m.id].away,
+        })),
+      }),
+      prisma.prodePlayer.update({
+        where: { id: player.id },
+        data: {
+          champion,
+          runner_up,
+          top_scorer: top_scorer.trim(),
+          best_player: best_player.trim(),
+          submitted_at: new Date(),
+        },
+      }),
+    ]);
+  } catch (err) {
+    // Doble envío concurrente: el unique (player_id, match_id) lo bloquea.
+    const isUnique =
+      typeof err === "object" && err !== null && "code" in err &&
+      (err as { code: string }).code === "P2002";
+    if (isUnique) {
+      return NextResponse.json(
+        { error: "Ya enviaste tus pronósticos. Solo se puede una vez." },
+        { status: 409 }
+      );
+    }
+    throw err;
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

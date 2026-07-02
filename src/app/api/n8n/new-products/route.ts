@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
 import { generateInstagramCaption } from "@/lib/openai/generate-caption";
+import { safeCompareSecret } from "@/lib/security";
 
 export const maxDuration = 60;
 
 function isAuthorized(req: NextRequest): boolean {
   const auth = req.headers.get("authorization") ?? "";
-  return auth === `Bearer ${process.env.N8N_SECRET}`;
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  return safeCompareSecret(token, process.env.N8N_SECRET);
 }
 
 export async function GET(req: NextRequest) {

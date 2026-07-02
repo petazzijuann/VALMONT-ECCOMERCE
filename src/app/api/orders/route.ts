@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma/client";
 import { createPaymentLink } from "@/lib/astropay/client";
 import { reserveStock } from "@/lib/orders/fulfill";
-import type { CreateOrderResponse } from "@/types";
+import type { CreateOrderResponse, ColorVariant, StockMap } from "@/types";
 
 const orderSchema = z.object({
   customer_name:    z.string().min(2),
@@ -28,7 +28,7 @@ const orderSchema = z.object({
 
   // Envío (opcionales)
   shipping_method:      z.string().nullable().optional(),
-  shipping_cost:        z.number().nullable().optional(),
+  shipping_cost:        z.number().min(0).nullable().optional(),
   shipping_cp:          z.string().nullable().optional(),
   shipping_days_label:  z.string().nullable().optional(),
   shipping_carrier:     z.string().nullable().optional(),
@@ -53,12 +53,19 @@ export async function POST(request: NextRequest) {
   // manipular para pagar menos. Se recalcula con price_sale de la BD.
   const dbProducts = await prisma.product.findMany({
     where:  { id: { in: data.items.map((i) => i.product_id) } },
-    select: { id: true, price_sale: true, is_published: true },
+    select: {
+      id: true,
+      price_sale: true,
+      is_published: true,
+      stock: true,
+      color_variants: true,
+    },
   });
+  const productById = new Map(
+    dbProducts.filter((p) => p.is_published).map((p) => [p.id, p])
+  );
   const priceById = new Map(
-    dbProducts
-      .filter((p) => p.is_published)
-      .map((p) => [p.id, Number(p.price_sale)])
+    [...productById.values()].map((p) => [p.id, Number(p.price_sale)])
   );
 
   // Rechazar si algún ítem no existe o no está publicado.
@@ -68,6 +75,35 @@ export async function POST(request: NextRequest) {
       { error: "Producto no disponible", product_id: invalid.product_id },
       { status: 400 }
     );
+  }
+
+  // Validar stock disponible por talle/color antes de crear el pedido.
+  // (reserveStock solo descuenta con piso en 0; sin este chequeo se podían
+  // crear pedidos de productos agotados.)
+  for (const item of data.items) {
+    const p = productById.get(item.product_id)!;
+    const variants = (p.color_variants ?? []) as unknown as ColorVariant[];
+    const isMultiColor = variants.length > 0 && variants[0].name !== "Único";
+
+    let available = 0;
+    if (isMultiColor && item.color) {
+      const variant = variants.find((v) => v.name === item.color);
+      available = variant?.stock[item.size] ?? 0;
+    } else {
+      available = (p.stock as StockMap)[item.size] ?? 0;
+    }
+
+    if (available < item.qty) {
+      return NextResponse.json(
+        {
+          error: "Stock insuficiente",
+          product_id: item.product_id,
+          size: item.size,
+          available,
+        },
+        { status: 409 }
+      );
+    }
   }
 
   // Reemplazar precios del cliente por los de la BD (fuente de verdad).

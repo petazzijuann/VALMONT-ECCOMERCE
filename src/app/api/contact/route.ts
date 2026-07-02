@@ -41,17 +41,20 @@ export async function POST(request: NextRequest) {
   const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   const token  = process.env.TELEGRAM_BOT_TOKEN;
   if (chatId && token) {
+    // Sin parse_mode: el contenido viene del usuario y un Markdown inválido
+    // (un solo "*", "_", etc.) haría fallar sendMessage y se perdería la
+    // notificación. Texto plano garantiza la entrega.
     const text =
-      `📩 *Nuevo mensaje de contacto*\n\n` +
-      `*Nombre:* ${nombre}\n` +
-      `*Email:* ${email}\n` +
-      (asunto ? `*Asunto:* ${asunto}\n` : "") +
-      `*Mensaje:*\n${mensaje}`;
+      `📩 Nuevo mensaje de contacto\n\n` +
+      `Nombre: ${nombre}\n` +
+      `Email: ${email}\n` +
+      (asunto ? `Asunto: ${asunto}\n` : "") +
+      `Mensaje:\n${mensaje}`;
 
     fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+      body: JSON.stringify({ chat_id: chatId, text }),
     }).catch(() => {});
   }
 

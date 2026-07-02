@@ -31,9 +31,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
 
-  if (typeof body.is_published !== "boolean") {
+  if (typeof body?.is_published !== "boolean") {
     return NextResponse.json({ error: "is_published requerido" }, { status: 400 });
   }
 

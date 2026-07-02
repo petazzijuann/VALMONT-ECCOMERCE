@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
 import { z } from "zod";
+import { safeCompareSecret } from "@/lib/security";
 
 function isAuthorized(req: NextRequest): boolean {
   const auth = req.headers.get("authorization") ?? "";
-  return auth === `Bearer ${process.env.N8N_SECRET}`;
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  return safeCompareSecret(token, process.env.N8N_SECRET);
 }
 
 const schema = z.object({
