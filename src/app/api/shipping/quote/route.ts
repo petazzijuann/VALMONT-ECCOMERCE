@@ -52,7 +52,15 @@ function toProvinceCode(name: string): string {
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(ip: string): boolean {
-  const now   = Date.now();
+  const now = Date.now();
+
+  // Purga de entradas vencidas para que el Map no crezca sin límite.
+  if (rateLimitMap.size > 1000) {
+    for (const [key, value] of rateLimitMap) {
+      if (now > value.resetAt) rateLimitMap.delete(key);
+    }
+  }
+
   const entry = rateLimitMap.get(ip);
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });

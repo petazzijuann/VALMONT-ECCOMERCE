@@ -46,7 +46,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data     = parsed.data;
+  const data = parsed.data;
+
+  // ── Precios autoritativos desde la base ──────────────────────
+  // Nunca confiar en el `price` que manda el cliente: se puede
+  // manipular para pagar menos. Se recalcula con price_sale de la BD.
+  const dbProducts = await prisma.product.findMany({
+    where:  { id: { in: data.items.map((i) => i.product_id) } },
+    select: { id: true, price_sale: true, is_published: true },
+  });
+  const priceById = new Map(
+    dbProducts
+      .filter((p) => p.is_published)
+      .map((p) => [p.id, Number(p.price_sale)])
+  );
+
+  // Rechazar si algún ítem no existe o no está publicado.
+  const invalid = data.items.find((i) => !priceById.has(i.product_id));
+  if (invalid) {
+    return NextResponse.json(
+      { error: "Producto no disponible", product_id: invalid.product_id },
+      { status: 400 }
+    );
+  }
+
+  // Reemplazar precios del cliente por los de la BD (fuente de verdad).
+  data.items = data.items.map((i) => ({
+    ...i,
+    price: priceById.get(i.product_id)!,
+  }));
+
   const subtotal = data.items.reduce((sum, i) => sum + i.price * i.qty, 0);
 
   // Coupon re-validation server-side

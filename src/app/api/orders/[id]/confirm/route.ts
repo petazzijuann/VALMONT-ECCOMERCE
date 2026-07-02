@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma/client";
-import { fulfillOrder } from "@/lib/orders/fulfill";
 
 const schema = z.object({
   payment_proof_url: z.string().url(),
@@ -23,12 +22,14 @@ export async function POST(
     return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
   }
 
+  // Solo se guarda el comprobante subido por el cliente. NO se confirma el
+  // pago ni se despacha automáticamente: un administrador debe verificar el
+  // comprobante y confirmar desde el panel (PATCH /api/admin/orders/[id]).
+  // De lo contrario, cualquiera con el ID de un pedido podría marcarlo pago.
   await prisma.order.update({
     where: { id },
     data: { payment_proof_url: parsed.data.payment_proof_url },
   });
-
-  await fulfillOrder(id, "transfer");
 
   return NextResponse.json({ ok: true });
 }

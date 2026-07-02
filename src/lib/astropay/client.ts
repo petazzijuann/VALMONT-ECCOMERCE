@@ -72,8 +72,12 @@ export function verifyWebhookSignature(payload: string, signature: string): bool
     .update(payload)
     .digest("hex");
 
-  return crypto.timingSafeEqual(
-    Buffer.from(expected, "hex"),
-    Buffer.from(signature, "hex")
-  );
+  // La firma llega del exterior: si no es hex válido o tiene otra longitud,
+  // timingSafeEqual lanzaría RangeError. Se compara de forma segura tras
+  // normalizar longitudes.
+  const expectedBuf = Buffer.from(expected, "hex");
+  const signatureBuf = Buffer.from(signature, "hex");
+  if (expectedBuf.length !== signatureBuf.length) return false;
+
+  return crypto.timingSafeEqual(expectedBuf, signatureBuf);
 }

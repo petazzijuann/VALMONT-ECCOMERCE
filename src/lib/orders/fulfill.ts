@@ -44,6 +44,15 @@ export async function fulfillOrder(orderId: string, paymentMethod: string) {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order || order.status === "payment_confirmed") return;
 
+  // Reclamo atómico del pedido: evita que webhooks reintentados o llamadas
+  // concurrentes generen ventas duplicadas. Solo el primero que cambie el
+  // estado continúa; el resto sale temprano.
+  const claim = await prisma.order.updateMany({
+    where: { id: orderId, status: { not: "payment_confirmed" } },
+    data:  { status: "payment_confirmed" },
+  });
+  if (claim.count === 0) return;
+
   const items = order.items as unknown as OrderItem[];
 
   // Si el pedido usó un cupón de descuento, repartirlo proporcionalmente
@@ -78,7 +87,7 @@ export async function fulfillOrder(orderId: string, paymentMethod: string) {
     });
   }
 
-  await prisma.order.update({ where: { id: orderId }, data: { status: "payment_confirmed" } });
+  // El estado ya se marcó como "payment_confirmed" en el reclamo atómico.
 
   // Crear orden en Andreani automáticamente al confirmar el pago
   const isAndreani =
